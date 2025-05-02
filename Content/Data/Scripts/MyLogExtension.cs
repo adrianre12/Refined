@@ -1,6 +1,6 @@
 ﻿using VRage.Utils;
 
-namespace SeRefined.Controller
+namespace Refined.Controller
 {
     public static class MyLogExtension
     {

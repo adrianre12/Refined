@@ -1,4 +1,5 @@
 using Sandbox.Definitions;
+using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI;
 using System;
 using System.Collections.Generic;
@@ -11,17 +12,30 @@ using VRage.ModAPI;
 using VRage.ObjectBuilders;
 using VRage.Utils;
 
-namespace SeRefined.Controller
+namespace Refined.Controller
 {
     [MyEntityComponentDescriptor(typeof(MyObjectBuilder_CargoContainer), false, "LargeBlockRefined")]
     public class RefinedGameLogic : MyGameLogicComponent
     {
-        IMyCargoContainer myRefinedBlock;
+        public const long DefaultMinOffline = 1;
+        private IMyCargoContainer myRefinedBlock;
+        public static Guid LastTimeKey = new Guid("0a1db65e-a169-4cf2-9a83-8903add9ca26");
         //MyIni config = new MyIni();
 
-        int UpdateCounter = 0;
-        int refreshCounterLimit = 3; //4.8s
-        bool debugLog = true;
+        private bool run = false;
+        private int UpdateCounter = 0;
+        private int refreshCounterLimit = 3; //4.8s
+        private bool debugLog = true;
+
+        private string lastTimeStr;
+        private long deltaTimeS; //seconds
+        private long nowS;
+        private long lastS;
+        private long minOffline = DefaultMinOffline;
+
+        private List<MyInventoryItem> inventory = new List<MyInventoryItem>();
+        private MyItemType uraniumId = MyItemType.MakeIngot("Uranium");
+        private MyInventoryItem uraniumItem;
 
         public override void Init(MyObjectBuilder_EntityBase objectBuilder)
         {
@@ -32,11 +46,19 @@ namespace SeRefined.Controller
             if (!MyAPIGateway.Session.IsServer)
                 return;
 
+            if (Entity.Storage == null)
+                Entity.Storage = new MyModStorageComponent();
+
             Log(false, "Loaded...");
+
+            run = true;
         }
 
         public override void UpdateAfterSimulation100()
         {
+            if (!run)
+                return;
+
             if (!MyAPIGateway.Session.IsServer)
                 return;
 
@@ -47,33 +69,53 @@ namespace SeRefined.Controller
 
             Log(debugLog, "Processing...");
 
-            DateTime now = DateTime.Now;
-            Log(false, now.ToString());
+            nowS = DateTime.Now.Ticks / 1000000;
+            deltaTimeS = 0;
 
-            Entity.Storage
-
-            Log(debugLog, "Inventory " + myRefinedBlock.InventoryCount);
-            VRage.Game.ModAPI.IMyInventory inv;
-
-            inv = myRefinedBlock.GetInventory();
-            if (inv == null)
+            if (Entity.Storage.TryGetValue(LastTimeKey, out lastTimeStr))
             {
-                Log(debugLog, "No Inventory");
-                return;
+                lastS = Convert.ToInt64(lastTimeStr);
+                if (lastS != 0)
+                    deltaTimeS = nowS - lastS;
+
+                Log(debugLog, $"nowS={nowS} lastS={lastS} deltaTimeS={deltaTimeS}");
+            }
+            else
+            {
+                Log(false, $"LastTimeKey not loaded {LastTimeKey}");
             }
 
-            List<MyInventoryItem> inventory = new List<MyInventoryItem>();
-            inv.GetItems(inventory);
+            Entity.Storage[LastTimeKey] = nowS.ToString();
+
+            Log(debugLog, $"deltaTimeS = {deltaTimeS}");
+
+            if (deltaTimeS < minOffline)
+                return;
+
+
+            inventory.Clear();
+            myRefinedBlock.GetInventory().GetItems(inventory);
             if (inventory == null)
             {
                 Log(debugLog, "No Inventory Items");
                 return;
             }
 
-            foreach (var invItem in inventory)
+
+            foreach (var item in inventory)
             {
-                MyFixedPoint invAmountCent = (MyFixedPoint)(Math.Truncate(((double)invItem.Amount) / 100.0) * 100);
-                Log(debugLog, $"{invItem.Type.TypeId} - {invItem.ItemId.ToString()} - {invItem.Type.ToString()} = {invItem.Amount} cent={invAmountCent}");
+                if (item.Type == uraniumId)
+                {
+                    Log(debugLog, "Found uranium ingots");
+                    uraniumItem = item;
+                    break;
+                }
+            }
+
+            foreach (var item in inventory)
+            {
+                MyFixedPoint invAmountCent = (MyFixedPoint)(Math.Truncate(((double)item.Amount) / 100.0) * 100);
+                Log(debugLog, $"{item.Type.TypeId} - {item.ItemId.ToString()} - {item.Type.ToString()} = {item.Amount} cent={invAmountCent}");
             }
 
 

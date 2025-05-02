@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using VRage;
 using VRage.Utils;
 
-namespace SeRefined.Controller
+namespace Refined.Controller
 {
     internal class RefineOre
     {
