@@ -136,8 +136,33 @@ namespace Refined.Controller
             {
                 Log(debugLog, "Nothing found");
             }
+            Log(debugLog, "pre grid null");
+            VRage.Game.ModAPI.IMyCubeGrid myCubeGrid = myRefinedBlock.CubeGrid;
+            if (myCubeGrid == null)
+            {
+                Log(debugLog, "grid null");
+                return;
+            }
 
+            List<VRage.Game.ModAPI.IMySlimBlock> blocks = new List<VRage.Game.ModAPI.IMySlimBlock>();
+            myCubeGrid.GetBlocks(blocks, null);
+            if (blocks == null)
+            {
+                Log(debugLog, "blocks null");
+                return;
+            }
 
+            //MyObjectBuilder_Refinery
+            foreach (var block in blocks)
+            {
+                Log(debugLog, $"Block = {block.BlockDefinition.DisplayNameText}");
+
+            }
+
+            foreach (var block in myCubeGrid.GetFatBlocks<Sandbox.ModAPI.IMyRefinery>())
+            {
+                Log(debugLog, $"FatBlock = {block.BlockDefinition.TypeId} {block.BlockDefinition.SubtypeName}");
+            }
         }
 
         private void Log(bool debug, string msg)
