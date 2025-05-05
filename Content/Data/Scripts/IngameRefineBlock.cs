@@ -32,6 +32,11 @@ namespace Refined.Controller
         private long nowS;
         private long lastS;
         private long minOffline = DefaultMinOffline;
+        private float baseRefineSpeed;
+        private float baseMaterialEfficiency;
+        private float baseOperationalPowerConsumption;
+        private float totalOreRate = 0;
+        private float totalPower = 0;
 
         private List<MyInventoryItem> inventory = new List<MyInventoryItem>();
         private MyItemType uraniumId = MyItemType.MakeIngot("Uranium");
@@ -48,6 +53,12 @@ namespace Refined.Controller
 
             if (Entity.Storage == null)
                 Entity.Storage = new MyModStorageComponent();
+
+            MyRefineryDefinition baseRefinaryDefinition = (MyRefineryDefinition)MyDefinitionManager.Static.GetCubeBlockDefinition(MyDefinitionId.Parse("MyObjectBuilder_Refinery/LargeRefinery"));
+            baseRefineSpeed = baseRefinaryDefinition.RefineSpeed;
+            baseMaterialEfficiency = baseRefinaryDefinition.MaterialEfficiency;
+            baseOperationalPowerConsumption = baseRefinaryDefinition.OperationalPowerConsumption;
+            Log(debugLog, $"baseRefineSpeed={baseRefineSpeed} baseMaterialEfficiency={baseMaterialEfficiency} baseOperationalPowerConsumption={baseOperationalPowerConsumption}");
 
             Log(false, "Loaded...");
 
@@ -69,7 +80,7 @@ namespace Refined.Controller
 
             Log(debugLog, "Processing...");
 
-            nowS = DateTime.Now.Ticks / 1000000;
+            nowS = DateTime.Now.Ticks / 1000; //TimeSpan.TicksPerSecond;
             deltaTimeS = 0;
 
             if (Entity.Storage.TryGetValue(LastTimeKey, out lastTimeStr))
@@ -93,6 +104,43 @@ namespace Refined.Controller
                 return;
 
 
+            //ProcessInventory();
+
+            ExamineRefineries();
+
+
+
+
+        }
+
+        private void ExamineRefineries()
+        {
+            float productivity;
+            float effectiveness;
+            float powerEfficiency;
+            totalOreRate = 0;
+            totalPower = 0;
+
+            foreach (var block in myRefinedBlock.CubeGrid.GetFatBlocks<Sandbox.ModAPI.IMyRefinery>())
+            {
+                Log(debugLog, $"FatBlock = {block.BlockDefinition.TypeId} {block.BlockDefinition.SubtypeName} {block.DetailedInfo}");
+
+                productivity = block.UpgradeValues["Productivity"];
+                effectiveness = block.UpgradeValues["Effectiveness"];
+                powerEfficiency = block.UpgradeValues["PowerEfficiency"];
+                Log(debugLog, $"Productivity={productivity} Effectiveness={effectiveness} PowerEfficiency={powerEfficiency}");
+
+                totalOreRate += (baseRefineSpeed + productivity) * baseMaterialEfficiency * effectiveness;
+                totalPower += baseOperationalPowerConsumption / powerEfficiency * (1 + productivity);
+
+                //var tmp = (MyRefineryDefinition)MyDefinitionManager.Static.GetCubeBlockDefinition(block.BlockDefinition);
+                //Log(debugLog, $"Speed={tmp.RefineSpeed} Effectivness={tmp.MaterialEfficiency} power={tmp.OperationalPowerConsumption}");
+            }
+            Log(debugLog, $"totalOreRate={totalOreRate} totalPower={totalPower}");
+        }
+
+        private void ProcessInventory()
+        {
             inventory.Clear();
             myRefinedBlock.GetInventory().GetItems(inventory);
             if (inventory == null)
@@ -135,33 +183,6 @@ namespace Refined.Controller
             else
             {
                 Log(debugLog, "Nothing found");
-            }
-            Log(debugLog, "pre grid null");
-            VRage.Game.ModAPI.IMyCubeGrid myCubeGrid = myRefinedBlock.CubeGrid;
-            if (myCubeGrid == null)
-            {
-                Log(debugLog, "grid null");
-                return;
-            }
-
-            List<VRage.Game.ModAPI.IMySlimBlock> blocks = new List<VRage.Game.ModAPI.IMySlimBlock>();
-            myCubeGrid.GetBlocks(blocks, null);
-            if (blocks == null)
-            {
-                Log(debugLog, "blocks null");
-                return;
-            }
-
-            //MyObjectBuilder_Refinery
-            foreach (var block in blocks)
-            {
-                Log(debugLog, $"Block = {block.BlockDefinition.DisplayNameText}");
-
-            }
-
-            foreach (var block in myCubeGrid.GetFatBlocks<Sandbox.ModAPI.IMyRefinery>())
-            {
-                Log(debugLog, $"FatBlock = {block.BlockDefinition.TypeId} {block.BlockDefinition.SubtypeName}");
             }
         }
 
