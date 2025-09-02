@@ -35,6 +35,7 @@ namespace Refined.Controller
         private float baseRefineSpeed;
         private float baseMaterialEfficiency;
         private float baseOperationalPowerConsumption;
+        private float refinerySpeedMultiplier;
         private float totalOreRate = 0;
         private float totalPower = 0;
 
@@ -58,6 +59,7 @@ namespace Refined.Controller
             baseRefineSpeed = baseRefinaryDefinition.RefineSpeed;
             baseMaterialEfficiency = baseRefinaryDefinition.MaterialEfficiency;
             baseOperationalPowerConsumption = baseRefinaryDefinition.OperationalPowerConsumption;
+            refinerySpeedMultiplier = MyAPIGateway.Session.RefinerySpeedMultiplier;
             Log(debugLog, $"baseRefineSpeed={baseRefineSpeed} baseMaterialEfficiency={baseMaterialEfficiency} baseOperationalPowerConsumption={baseOperationalPowerConsumption}");
 
             Log(false, "Loaded...");
@@ -103,10 +105,11 @@ namespace Refined.Controller
             if (deltaTimeS < minOffline)
                 return;
 
-
-            //ProcessInventory();
-
             ExamineRefineries();
+
+            ProcessInventory();
+
+
 
 
 
@@ -130,7 +133,7 @@ namespace Refined.Controller
                 powerEfficiency = block.UpgradeValues["PowerEfficiency"];
                 Log(debugLog, $"Productivity={productivity} Effectiveness={effectiveness} PowerEfficiency={powerEfficiency}");
 
-                totalOreRate += (baseRefineSpeed + productivity) * baseMaterialEfficiency * effectiveness;
+                totalOreRate += (baseRefineSpeed + productivity) * baseMaterialEfficiency * effectiveness * refinerySpeedMultiplier;
                 totalPower += baseOperationalPowerConsumption / powerEfficiency * (1 + productivity);
 
                 //var tmp = (MyRefineryDefinition)MyDefinitionManager.Static.GetCubeBlockDefinition(block.BlockDefinition);
@@ -160,30 +163,42 @@ namespace Refined.Controller
                 }
             }
 
+            MyFixedPoint amountReq;
+            MyBlueprintDefinitionBase.Item[] ingots;
+
             foreach (var item in inventory)
             {
+                if (item.Type.TypeId != "Ore")
+                {
+                    Log(debugLog, $"TypeId = {item.Type.TypeId}");
+                    return;
+                }
                 MyFixedPoint invAmountCent = (MyFixedPoint)(Math.Truncate(((double)item.Amount) / 100.0) * 100);
                 Log(debugLog, $"{item.Type.TypeId} - {item.ItemId.ToString()} - {item.Type.ToString()} = {item.Amount} cent={invAmountCent}");
-            }
 
-
-            MyFixedPoint amountReq;
-
-            MyBlueprintDefinitionBase.Item[] ingots;
-            //MyObjectBuilder_Ore/Iron
-
-            if (RefineOre.TryGetIngots("Iron", out amountReq, out ingots))
-            {
-
-                foreach (var ingot in ingots)
+                if (RefineOre.TryGetIngots(item.Type.SubtypeId, out amountReq, out ingots))
                 {
-                    Log(debugLog, $"Ingot={ingot.Id.SubtypeName}  AmountReq={amountReq}");
+
                 }
             }
-            else
-            {
-                Log(debugLog, "Nothing found");
-            }
+
+
+
+
+            //MyObjectBuilder_Ore/Iron
+
+            /*            if (RefineOre.TryGetIngots("Iron", out amountReq, out ingots))
+                        {
+
+                            foreach (var ingot in ingots)
+                            {
+                                Log(debugLog, $"Ingot={ingot.Id.SubtypeName}  AmountReq={amountReq}");
+                            }
+                        }
+                        else
+                        {
+                            Log(debugLog, "Nothing found");
+                        }*/
         }
 
         private void Log(bool debug, string msg)
