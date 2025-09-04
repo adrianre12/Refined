@@ -9,9 +9,8 @@ using VRage.Game.Components;
 using VRage.Game.ModAPI.Ingame;
 using VRage.ModAPI;
 using VRage.ObjectBuilders;
-using VRage.Utils;
 
-namespace Refined.Controller
+namespace Catopia.Refined
 {
     [MyEntityComponentDescriptor(typeof(MyObjectBuilder_CargoContainer), false, "LargeBlockRefined")]
     public class RefinedGameLogic : MyGameLogicComponent
@@ -20,11 +19,13 @@ namespace Refined.Controller
         public const int PollPeriod = 3; //4.8s
 
         private IMyCargoContainer myRefinedBlock;
-        public static Guid LastTimeKey = new Guid("0a1db65e-a169-4cf2-9a83-8903add9ca26");
+        private Guid LastTimeKey = new Guid("0a1db65e-a169-4cf2-9a83-8903add9ca26");
 
         private bool run = false;
         private int updateCounter = PollPeriod;
+        private string keyWord = "Rfnd";
         private RefineOre refineOre;
+        private Inventories inventories;
 
         private float totalPower;
         private long totalRefineryS;
@@ -47,7 +48,9 @@ namespace Refined.Controller
 
 
             refineOre = new RefineOre();
-            Log("Loaded...");
+            inventories = new Inventories(myRefinedBlock);
+
+            Log.Msg("Loaded...");
 
             run = true;
             NeedsUpdate = MyEntityUpdateEnum.EACH_100TH_FRAME;
@@ -69,10 +72,15 @@ namespace Refined.Controller
             /*if (NotPaused(out offlineS))
                 return;*/
 
-            Log("Processing...");
+            Log.Msg("Processing...");
 
             offlineS = 1000;
-            ExamineRefineries(offlineS);
+            inventories.Clear();
+            FindRefineries(offlineS);
+
+            inventories.FindContainerInventories(keyWord);
+
+            Log.Msg($"Uranium={inventories.ItemAmount(uraniumId)}");
 
             //ProcessInventory();
 
@@ -94,21 +102,21 @@ namespace Refined.Controller
                 if (lastS != 0)
                     offlineS = nowS - lastS;
 
-                Log($"nowS={nowS} lastS={lastS} deltaTimeS={offlineS}");
+                Log.Msg($"nowS={nowS} lastS={lastS} deltaTimeS={offlineS}");
             }
             else
             {
-                Log($"LastTimeKey not loaded {LastTimeKey}");
+                Log.Msg($"LastTimeKey not loaded {LastTimeKey}");
             }
 
             Entity.Storage[LastTimeKey] = nowS.ToString();
 
-            Log($"deltaTimeS = {offlineS}");
+            Log.Msg($"deltaTimeS = {offlineS}");
 
             return offlineS < DefaultMinOffline;
         }
 
-        private void ExamineRefineries(long offlineS)
+        private void FindRefineries(long offlineS)
         {
             float productivity;
             float effectiveness;
@@ -130,9 +138,11 @@ namespace Refined.Controller
             {
                 //Log($"FatBlock={block.BlockDefinition.TypeId} {block.BlockDefinition.SubtypeName} {block.DetailedInfo} Enabled={block.Enabled} IsFunctional={block.IsFunctional}");
 
-                if (!block.Enabled || !block.IsFunctional)
+                if (!block.CustomName.Contains(keyWord) || !block.Enabled || !block.IsFunctional)
                     return;
 
+                if (!inventories.AddRefineryInventories(block))
+                    return;
 
                 productivity = block.UpgradeValues["Productivity"];
                 effectiveness = block.UpgradeValues["Effectiveness"];
@@ -146,7 +156,7 @@ namespace Refined.Controller
 
             }
             avgYieldMultiplier = sumYieldMultiplier / refinaryCount;
-            Log($"avgYieldMultiplier={avgYieldMultiplier} totalRefineryS ={totalRefineryS} totalPower={totalPower}");
+            Log.Msg($"avgYieldMultiplier={avgYieldMultiplier} totalRefineryS ={totalRefineryS} totalPower={totalPower}");
         }
 
         private void ProcessInventory()
@@ -155,7 +165,7 @@ namespace Refined.Controller
             myRefinedBlock.GetInventory().GetItems(inventory);
             if (inventory == null)
             {
-                Log("No Inventory Items");
+                Log.Msg("No Inventory Items");
                 return;
             }
 
@@ -164,7 +174,7 @@ namespace Refined.Controller
             {
                 if (item.Type == uraniumId)
                 {
-                    Log("Found uranium ingots");
+                    Log.Msg("Found uranium ingots");
                     uraniumItem = item;
                     break;
                 }
@@ -177,11 +187,11 @@ namespace Refined.Controller
             {
                 if (item.Type.TypeId != "Ore")
                 {
-                    Log($"TypeId = {item.Type.TypeId}");
+                    Log.Msg($"TypeId = {item.Type.TypeId}");
                     return;
                 }
                 MyFixedPoint invAmountCent = (MyFixedPoint)(Math.Truncate(((double)item.Amount) / 100.0) * 100);
-                Log($"{item.Type.TypeId} - {item.ItemId.ToString()} - {item.Type.ToString()} = {item.Amount} cent={invAmountCent}");
+                Log.Msg($"{item.Type.TypeId} - {item.ItemId.ToString()} - {item.Type.ToString()} = {item.Amount} cent={invAmountCent}");
 
                 if (refineOre.TryGetIngots(item.Type.SubtypeId, out amountReq, out ingots))
                 {
@@ -208,9 +218,5 @@ namespace Refined.Controller
                         }*/
         }
 
-        private void Log(string msg)
-        {
-            MyLog.Default.WriteLine($"SeRefined {msg}");
-        }
     }
 }

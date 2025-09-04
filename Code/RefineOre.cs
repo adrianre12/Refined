@@ -1,9 +1,8 @@
 ﻿using Sandbox.Definitions;
 using System.Collections.Generic;
 using VRage;
-using VRage.Utils;
 
-namespace Refined.Controller
+namespace Catopia.Refined
 {
     internal class RefineOre
     {
@@ -11,7 +10,7 @@ namespace Refined.Controller
 
         public RefineOre()
         {
-            MyLog.Default.WriteLineIf(false, "RefineOre: Starting");
+            Log.Msg("RefineOre: Starting");
             oreToIngots = new Dictionary<string, MyBlueprintDefinitionBase>();
             MyBlueprintClassDefinition ingotBpClass = MyDefinitionManager.Static.GetBlueprintClass("Ingots");
             foreach (var bpc in ingotBpClass)
@@ -19,15 +18,15 @@ namespace Refined.Controller
 
                 if (bpc.Prerequisites.Length == 0)
                 {
-                    MyLog.Default.WriteLineIf(false, $"RefineOre: {bpc.Id.SubtypeName} no prerequisites");
+                    Log.Msg($"RefineOre: {bpc.Id.SubtypeName} no prerequisites");
                     continue;
                 }
 
                 if (oreToIngots.ContainsKey(bpc.Prerequisites[0].Id.SubtypeName))
                     continue;
-                MyLog.Default.WriteLineIf(false, $"RefineOre: Found {bpc.Prerequisites[0].Id.SubtypeName} " +
-                    $"amountRatio={(float)bpc.Results[0].Amount / (float)bpc.Prerequisites[0].Amount} " +
-                    $"buildTime={bpc.BaseProductionTimeInSeconds / (float)bpc.Prerequisites[0].Amount}");
+                Log.Msg($"RefineOre: Found {bpc.Prerequisites[0].Id.SubtypeName} " +
+                $"amountRatio={(float)bpc.Results[0].Amount / (float)bpc.Prerequisites[0].Amount} " +
+                $"buildTime={bpc.BaseProductionTimeInSeconds / (float)bpc.Prerequisites[0].Amount}");
                 oreToIngots.Add(bpc.Prerequisites[0].Id.SubtypeName, bpc);
             }
         }
