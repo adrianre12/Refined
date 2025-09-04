@@ -9,7 +9,7 @@
             </Id>
             <DefaultComponents>
                 <Component BuilderType="MyObjectBuilder_Inventory" SubtypeId="LargeBlockRefined" ForceCreate="true"/>
-            </DefaultComponents>
+			</DefaultComponents>
         </Container>
         
     </EntityContainers>

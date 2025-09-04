@@ -7,9 +7,9 @@ namespace Refined.Controller
 {
     internal class RefineOre
     {
-        private static Dictionary<string, MyBlueprintDefinitionBase> oreToIngots = null;
+        private Dictionary<string, MyBlueprintDefinitionBase> oreToIngots = null;
 
-        static RefineOre()
+        public RefineOre()
         {
             MyLog.Default.WriteLineIf(false, "RefineOre: Starting");
             oreToIngots = new Dictionary<string, MyBlueprintDefinitionBase>();
@@ -25,17 +25,19 @@ namespace Refined.Controller
 
                 if (oreToIngots.ContainsKey(bpc.Prerequisites[0].Id.SubtypeName))
                     continue;
-                MyLog.Default.WriteLineIf(false, $"RefineOre: Found {bpc.Prerequisites[0].Id.SubtypeName}");
+                MyLog.Default.WriteLineIf(false, $"RefineOre: Found {bpc.Prerequisites[0].Id.SubtypeName} " +
+                    $"amountRatio={(float)bpc.Results[0].Amount / (float)bpc.Prerequisites[0].Amount} " +
+                    $"buildTime={bpc.BaseProductionTimeInSeconds / (float)bpc.Prerequisites[0].Amount}");
                 oreToIngots.Add(bpc.Prerequisites[0].Id.SubtypeName, bpc);
             }
         }
 
-        public static int OresLoaded()
+        public int OresLoaded()
         {
             return oreToIngots.Count;
         }
 
-        public static bool TryGetIngots(string oreName, out MyFixedPoint amount, out MyBlueprintDefinitionBase.Item[] ingots)
+        public bool TryGetIngots(string oreName, out MyFixedPoint amount, out MyBlueprintDefinitionBase.Item[] ingots)
         {
             amount = 0;
             ingots = null;

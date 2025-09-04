@@ -1,14 +1,15 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-    <EntityComponents>
+	<EntityComponents>
 
-        <EntityComponent xsi:type="MyObjectBuilder_InventoryComponentDefinition">
-            <Id>
-                <TypeId>Inventory</TypeId>
-                <SubtypeId>LargeBlockRefined</SubtypeId>
-            </Id>
-            <Size x="100" y="100" z="100" />
-        </EntityComponent>
+		<EntityComponent xsi:type="MyObjectBuilder_InventoryComponentDefinition">
+			<Id>
+				<TypeId>Inventory</TypeId>
+				<SubtypeId>LargeBlockRefined</SubtypeId>
+			</Id>
+			<Size x="2.5" y="2.5" z="2.5" />
+		</EntityComponent>
+
 		<EntityComponent xsi:type="MyObjectBuilder_ModStorageComponentDefinition">
 			<Id>
 				<TypeId>ModStorageComponent</TypeId>
@@ -18,5 +19,5 @@
 				<guid>0a1db65e-a169-4cf2-9a83-8903add9ca26</guid>
 			</RegisteredStorageGuids>
 		</EntityComponent>
-    </EntityComponents>
+	</EntityComponents>
 </Definitions>
