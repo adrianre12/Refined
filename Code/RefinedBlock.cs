@@ -6,17 +6,20 @@ using System.Collections.Generic;
 using VRage;
 using VRage.Game;
 using VRage.Game.Components;
-using VRage.Game.ModAPI.Ingame;
+using VRage.Game.ModAPI;
 using VRage.ModAPI;
 using VRage.ObjectBuilders;
+using Ingame = VRage.Game.ModAPI.Ingame;
 
 namespace Catopia.Refined
 {
     [MyEntityComponentDescriptor(typeof(MyObjectBuilder_CargoContainer), false, "LargeBlockRefined")]
     public class RefinedGameLogic : MyGameLogicComponent
     {
-        public const long DefaultMinOffline = 30 * 60; //seconds
+        public const int DefaultMinOffline = 30 * 60; //seconds
+        public const int DefaultMaxOffline = 168 * 3600; //seconds
         public const int PollPeriod = 3; //4.8s
+        public const float MWsPerU = 1.0f * 3600;
 
         private IMyCargoContainer myRefinedBlock;
         private Guid LastTimeKey = new Guid("0a1db65e-a169-4cf2-9a83-8903add9ca26");
@@ -24,16 +27,25 @@ namespace Catopia.Refined
         private bool run = false;
         private int updateCounter = PollPeriod;
         private string keyWord = "Rfnd";
-        private RefineOre refineOre;
         private Inventories inventories;
 
-        private float totalPower;
-        private long totalRefineryS;
+        private List<Ingame.MyInventoryItem> inventory = new List<Ingame.MyInventoryItem>();
+        private Ingame.MyItemType uraniumId = Ingame.MyItemType.MakeIngot("Uranium");
+        //private MyDefinitionId UDefId = new MyDefinitionId(typeof(MyObjectBuilder_Ingot), "Uranium");
+
+        private float reactorMaxPower;
+        private int reactorAvaialbleUranium;
+        private int reactorReserveUranium = 50;
+        private float reactorConsumedUranium;
+
+        private float refineriesTotalPower;
+        private float refineriesTotalSpeed;
         private float avgYieldMultiplier;
 
-        private List<MyInventoryItem> inventory = new List<MyInventoryItem>();
-        private MyItemType uraniumId = MyItemType.MakeIngot("Uranium");
-        private MyInventoryItem uraniumItem;
+        private float maxRefinerySeconds;
+        private float availableRefinerySeconds;
+
+        private RefineInfo refineInfoI;
 
         public override void Init(MyObjectBuilder_EntityBase objectBuilder)
         {
@@ -47,13 +59,21 @@ namespace Catopia.Refined
                 Entity.Storage = new MyModStorageComponent();
 
 
-            refineOre = new RefineOre();
             inventories = new Inventories(myRefinedBlock);
 
             Log.Msg("Loaded...");
 
             run = true;
-            NeedsUpdate = MyEntityUpdateEnum.EACH_100TH_FRAME;
+            NeedsUpdate = MyEntityUpdateEnum.BEFORE_NEXT_FRAME;
+        }
+
+        public override void UpdateOnceBeforeFrame()
+        {
+            base.UpdateOnceBeforeFrame();
+            refineInfoI = RefineInfo.Instance;
+            refineInfoI.NewProcessOrderList();
+
+            //            NeedsUpdate = MyEntityUpdateEnum.EACH_100TH_FRAME;
         }
 
         public override void UpdateAfterSimulation100()
@@ -76,14 +96,25 @@ namespace Catopia.Refined
 
             offlineS = 1000;
             inventories.Clear();
-            FindRefineries(offlineS);
+
+            FindReactorInfo();
+
+            FindRefineriesInfo();
+
+            maxRefinerySeconds = reactorAvaialbleUranium * MWsPerU / refineriesTotalPower * refineriesTotalSpeed;
+            availableRefinerySeconds = maxRefinerySeconds;
 
             inventories.FindContainerInventories(keyWord);
 
-            Log.Msg($"Uranium={inventories.ItemAmount(uraniumId)}");
+            /*            int maxRuntimeS = (int)Math.Min(offlineS, 3600.0 * reactorUranium * MWhPerU / refineriesTotalPower);
+                        Log.Msg($"reactorMaxPower={reactorMaxPower} reactorUranium={reactorUranium} refineriesTotalPower={refineriesTotalPower} powerRuntimeS={3600 * reactorUranium * MWhPerU / refineriesTotalPower}");
 
-            //ProcessInventory();
+                        int refinaryTimeS = (int)(maxRuntimeS * refineriesTotalSpeed);
+                        Log.Msg($" maxRuntimeS={maxRuntimeS} refinaryTimeS={refinaryTimeS}");
 
+                        var refineOre = RefineOre.Instance;
+                        ProcessInventory();
+            */
 
 
             //run = false;
@@ -100,7 +131,7 @@ namespace Catopia.Refined
             {
                 long lastS = Convert.ToInt64(lastTimeStr);
                 if (lastS != 0)
-                    offlineS = nowS - lastS;
+                    offlineS = Math.Min(DefaultMaxOffline, nowS - lastS);
 
                 Log.Msg($"nowS={nowS} lastS={lastS} deltaTimeS={offlineS}");
             }
@@ -116,7 +147,27 @@ namespace Catopia.Refined
             return offlineS < DefaultMinOffline;
         }
 
-        private void FindRefineries(long offlineS)
+        private void FindReactorInfo()
+        {
+            reactorMaxPower = 0;
+            reactorAvaialbleUranium = 0;
+            reactorConsumedUranium = 0;
+            int amountU = 0;
+            Log.Msg("FindReactorInfo");
+            foreach (var block in myRefinedBlock.CubeGrid.GetFatBlocks<IMyReactor>())
+            {
+                if (!block.Enabled || !block.IsFunctional)
+                    return;
+                amountU = (int)block.GetInventory().GetItemAmount(uraniumId) - reactorReserveUranium;
+                if (amountU <= 0)
+                    continue;
+                reactorAvaialbleUranium += amountU;
+                reactorMaxPower += block.MaxOutput;
+                //Log.Msg($"Reactor {block.CustomName} maxOutput={block.MaxOutput} amountU={amountU}");
+            }
+        }
+
+        internal void FindRefineriesInfo()
         {
             float productivity;
             float effectiveness;
@@ -130,8 +181,8 @@ namespace Catopia.Refined
             //Log($"baseRefineSpeed={baseRefineSpeed} baseMaterialEfficiency={baseMaterialEfficiency} baseOperationalPowerConsumption={baseOperationalPowerConsumption} refinerySpeedMultiplier={refinerySpeedMultiplier}");
 
             avgYieldMultiplier = 0;
-            totalRefineryS = 0;
-            totalPower = 0;
+            refineriesTotalSpeed = 0;
+            refineriesTotalPower = 0;
             int refinaryCount = 0;
             float sumYieldMultiplier = 0;
             foreach (var block in myRefinedBlock.CubeGrid.GetFatBlocks<IMyRefinery>())
@@ -141,8 +192,8 @@ namespace Catopia.Refined
                 if (!block.CustomName.Contains(keyWord) || !block.Enabled || !block.IsFunctional)
                     return;
 
-                if (!inventories.AddRefineryInventories(block))
-                    return;
+                //if (!inventories.AddRefineryInventories(block))
+                //    return;
 
                 productivity = block.UpgradeValues["Productivity"];
                 effectiveness = block.UpgradeValues["Effectiveness"];
@@ -151,71 +202,64 @@ namespace Catopia.Refined
 
                 refinaryCount++;
                 sumYieldMultiplier += effectiveness;
-                totalRefineryS += (long)Math.Round((baseRefineSpeed + productivity) * refinerySpeedMultiplier * offlineS);
-                totalPower += baseOperationalPowerConsumption / powerEfficiency * (1 + productivity);
+                refineriesTotalSpeed += (float)Math.Round((baseRefineSpeed + productivity) * refinerySpeedMultiplier);
+                refineriesTotalPower += baseOperationalPowerConsumption / powerEfficiency * (1 + productivity);
 
             }
             avgYieldMultiplier = sumYieldMultiplier / refinaryCount;
-            Log.Msg($"avgYieldMultiplier={avgYieldMultiplier} totalRefineryS ={totalRefineryS} totalPower={totalPower}");
+            Log.Msg($"avgYieldMultiplier={avgYieldMultiplier} refineriesTotalSpeed ={refineriesTotalSpeed} refineriesTotalPower={refineriesTotalPower}");
+        }
+
+        internal void RefineInventoryOre(IMyInventory inventory, OreToIngotInfo info)
+        {
+            int oreAmount = (int)inventory.GetItemAmount(info.ItemId);
+            if (oreAmount == 0)
+                return;
+
+            double prereqAmount = (double)info.Amount;
+            int bpRuns = (int)Math.Truncate(oreAmount / prereqAmount);
+            if (bpRuns == 0)
+                return;
+
+            int freeVolume = (int)(inventory.MaxVolume - inventory.CurrentVolume);
+            float deltaVolume = info.IngotsVolume * avgYieldMultiplier - (info.Volume * (float)info.Amount);
+
+            if (deltaVolume > 0)
+            {
+                bpRuns = (int)Math.Min(freeVolume / deltaVolume, bpRuns);
+                if (bpRuns < 1)
+                    return;
+            }
+
+            //power check.
+            bpRuns = ConsumeRefinaryTime(info.ProductionTime, bpRuns);
+
+            inventory.RemoveItemsOfType(bpRuns * info.Amount, info.ItemId);
+
+            foreach (var ingot in info.Ingots)
+            {
+                MyFixedPoint ingotAmount = ingot.Amount * (avgYieldMultiplier * bpRuns);
+                inventory.AddItems(ingotAmount, (MyObjectBuilder_PhysicalObject)MyObjectBuilderSerializer.CreateNewObject(ingot.ItemId));
+            }
+
+        }
+
+        private int ConsumeRefinaryTime(float productionTime, int bpRuns)
+        {
+            var neededTime = productionTime * bpRuns;
+            if (neededTime <= availableRefinerySeconds)
+            {
+                availableRefinerySeconds -= neededTime;
+                return bpRuns;
+            }
+
+            availableRefinerySeconds = 0;
+            return (int)(availableRefinerySeconds / productionTime);
         }
 
         private void ProcessInventory()
         {
-            inventory.Clear();
-            myRefinedBlock.GetInventory().GetItems(inventory);
-            if (inventory == null)
-            {
-                Log.Msg("No Inventory Items");
-                return;
-            }
 
-
-            foreach (var item in inventory)
-            {
-                if (item.Type == uraniumId)
-                {
-                    Log.Msg("Found uranium ingots");
-                    uraniumItem = item;
-                    break;
-                }
-            }
-
-            MyFixedPoint amountReq;
-            MyBlueprintDefinitionBase.Item[] ingots;
-
-            foreach (var item in inventory)
-            {
-                if (item.Type.TypeId != "Ore")
-                {
-                    Log.Msg($"TypeId = {item.Type.TypeId}");
-                    return;
-                }
-                MyFixedPoint invAmountCent = (MyFixedPoint)(Math.Truncate(((double)item.Amount) / 100.0) * 100);
-                Log.Msg($"{item.Type.TypeId} - {item.ItemId.ToString()} - {item.Type.ToString()} = {item.Amount} cent={invAmountCent}");
-
-                if (refineOre.TryGetIngots(item.Type.SubtypeId, out amountReq, out ingots))
-                {
-
-                }
-            }
-
-
-
-
-            //MyObjectBuilder_Ore/Iron
-
-            /*            if (RefineOre.TryGetIngots("Iron", out amountReq, out ingots))
-                        {
-
-                            foreach (var ingot in ingots)
-                            {
-                                Log(debugLog, $"Ingot={ingot.Id.SubtypeName}  AmountReq={amountReq}");
-                            }
-                        }
-                        else
-                        {
-                            Log(debugLog, "Nothing found");
-                        }*/
         }
 
     }

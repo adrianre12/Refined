@@ -1,8 +1,11 @@
-﻿using Sandbox.ModAPI;
+﻿using Sandbox.Definitions;
+using Sandbox.Game;
+using Sandbox.ModAPI;
 using System.Collections.Generic;
 using VRage;
+using VRage.Game;
 using VRage.Game.ModAPI;
-using Ingame = VRage.Game.ModAPI.Ingame;
+using VRage.ObjectBuilders;
 
 namespace Catopia.Refined
 {
@@ -10,7 +13,7 @@ namespace Catopia.Refined
     {
         private IMyCubeGrid cubeGrid;
         private List<IMyInventory> inventories = new List<IMyInventory>();
-        private List<IMyInventory> InputInventories = new List<IMyInventory>();
+        //private List<IMyInventory> InputInventories = new List<IMyInventory>();
 
         private IMyInventory refinedInventory;
         public Inventories(IMyCargoContainer refinedBlock)
@@ -21,7 +24,7 @@ namespace Catopia.Refined
 
         internal void Clear()
         {
-            InputInventories.Clear();
+            //InputInventories.Clear();
             inventories.Clear();
         }
 
@@ -42,35 +45,123 @@ namespace Catopia.Refined
             }
         }
 
-        /// <summary>
-        /// Checks if the inventory is reachable and adds it
-        /// </summary>
-        /// <param name="inventory"></param>
-        /// <returns>IsReachable</returns>
-        internal bool AddRefineryInventories(IMyRefinery refinary)
+        /*        /// <summary>
+                /// Checks if the inventory is reachable and adds it
+                /// </summary>
+                /// <param name="inventory"></param>
+                /// <returns>IsReachable</returns>
+                internal bool AddRefineryInventories(IMyRefinery refinary)
+                {
+                    if (refinary == null || !refinedInventory.IsConnectedTo(refinary.InputInventory))
+                    {
+                        Log.Msg($"Not added {refinary.CustomName}");
+                        return false;
+                    }
+                    InputInventories.Add(refinary.InputInventory);
+                    inventories.Add(refinary.OutputInventory);
+                    return true;
+                }
+
+                internal long ItemAmount(MyDefinitionId itemType)
+                {
+                    MyFixedPoint amount = 0;
+                    foreach (var inventory in inventories)
+                    {
+                        amount += inventory.GetItemAmount(itemType);
+                    }
+                    foreach (var inventory in InputInventories)
+                    {
+                        amount += inventory.GetItemAmount(itemType);
+                    }
+                    return (long)amount;
+                }
+
+                internal int RemoveItemAmount(MyDefinitionId itemType, int amount)
+                {
+                    MyFixedPoint remove = (MyFixedPoint)amount;
+                    foreach (var inventory in InputInventories)
+                    {
+                        remove -= RemoveItemAmountFromInventory(inventory, itemType, remove);
+                        if (remove == 0)
+                            break;
+                    }
+                    var removed = amount - remove;
+                    return removed.ToIntSafe();
+                }
+
+                internal int AddItemAmount(MyDefinitionId itemType, int amount)
+                {
+                    RefineOre refineOre = RefineOre.Instance;
+                    MyPhysicalItemDefinition physicalItem;
+                    if (!RefineOre.Instance.TryGetPhysicalItem(itemType, out physicalItem))
+                    {
+                        Log.Msg($"Failed to find volume for {itemType.ToString()}");
+                        return 0;
+                    }
+
+                    MyFixedPoint add = (MyFixedPoint)amount;
+                    foreach (var inventory in InputInventories)
+                    {
+                        add -= AddItemAmountToInventory((MyInventory)inventory, itemType, add, physicalItem);
+                        if (add == 0)
+                            break;
+                    }
+                    var removed = amount - add;
+                    return removed.ToIntSafe();
+                }
+*/
+
+        internal MyFixedPoint RemoveItemAmountFromInventory(IMyInventory inventory, MyDefinitionId itemType, MyFixedPoint amount)
         {
-            if (refinary == null || !refinedInventory.IsConnectedTo(refinary.InputInventory))
-            {
-                Log.Msg($"Not added {refinary.CustomName}");
-                return false;
-            }
-            InputInventories.Add(refinary.InputInventory);
-            inventories.Add(refinary.OutputInventory);
-            return true;
+            MyFixedPoint foundAmount = inventory.GetItemAmount(itemType);
+            if (foundAmount == 0)
+                return 0;
+
+            MyFixedPoint removedAmount = MyFixedPoint.Min(foundAmount, amount);
+            inventory.RemoveItemsOfType(removedAmount, itemType);
+
+            return removedAmount;
         }
 
-        internal long ItemAmount(Ingame.MyItemType itemType)
+        internal MyFixedPoint AddItemAmountToInventory(MyInventory inventory, MyDefinitionId itemType, MyFixedPoint amount, MyPhysicalItemDefinition physicalItem)
         {
-            MyFixedPoint amount = 0;
+            double freeVolume = (double)(inventory.MaxVolume - inventory.CurrentVolume);
+            MyFixedPoint maxAdd = MyFixedPoint.Min(amount, inventory.ComputeAmountThatFits(itemType));
+
+            if (!inventory.CanItemsBeAdded(maxAdd, itemType))
+            {
+                Log.Msg($"Could not add {maxAdd.ToString()} of {itemType.ToString()}");
+                return MyFixedPoint.Zero;
+            }
+            inventory.AddItems(maxAdd, (MyObjectBuilder_PhysicalObject)MyObjectBuilderSerializer.CreateNewObject(physicalItem.Id));
+            return maxAdd;
+        }
+
+
+        internal void RefineContainers(MyDefinitionId oreItemId)
+        {
+            RefineInfo refineInfo = RefineInfo.Instance;
+            OreToIngotInfo info = null;
+            if (!refineInfo.OreToIngots.TryGetValue(oreItemId, out info))
+            {
+                Log.Msg($"Failed to get info for {oreItemId}");
+                return;
+            }
+
+            MyFixedPoint oreAmount = 0;
             foreach (var inventory in inventories)
             {
-                amount += inventory.GetItemAmount(itemType);
+                /*                if (info.Amount == 0)
+                                    continue;*/
+
+
+                //find container free volume 
+
+                //calculate ingots volume
             }
-            foreach (var inventory in InputInventories)
-            {
-                amount += inventory.GetItemAmount(itemType);
-            }
-            return (long)amount;
         }
+
+
+
     }
 }
