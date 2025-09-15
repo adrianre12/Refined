@@ -1,11 +1,6 @@
-﻿using Sandbox.Definitions;
-using Sandbox.Game;
-using Sandbox.ModAPI;
+﻿using Sandbox.ModAPI;
 using System.Collections.Generic;
-using VRage;
-using VRage.Game;
 using VRage.Game.ModAPI;
-using VRage.ObjectBuilders;
 
 namespace Catopia.Refined
 {
@@ -111,57 +106,31 @@ namespace Catopia.Refined
                 }
 */
 
-        internal MyFixedPoint RemoveItemAmountFromInventory(IMyInventory inventory, MyDefinitionId itemType, MyFixedPoint amount)
-        {
-            MyFixedPoint foundAmount = inventory.GetItemAmount(itemType);
-            if (foundAmount == 0)
-                return 0;
+        /*        internal MyFixedPoint RemoveItemAmountFromInventory(IMyInventory inventory, MyDefinitionId itemType, MyFixedPoint amount)
+                {
+                    MyFixedPoint foundAmount = inventory.GetItemAmount(itemType);
+                    if (foundAmount == 0)
+                        return 0;
 
-            MyFixedPoint removedAmount = MyFixedPoint.Min(foundAmount, amount);
-            inventory.RemoveItemsOfType(removedAmount, itemType);
+                    MyFixedPoint removedAmount = MyFixedPoint.Min(foundAmount, amount);
+                    inventory.RemoveItemsOfType(removedAmount, itemType);
 
-            return removedAmount;
-        }
+                    return removedAmount;
+                }
 
-        internal MyFixedPoint AddItemAmountToInventory(MyInventory inventory, MyDefinitionId itemType, MyFixedPoint amount, MyPhysicalItemDefinition physicalItem)
-        {
-            double freeVolume = (double)(inventory.MaxVolume - inventory.CurrentVolume);
-            MyFixedPoint maxAdd = MyFixedPoint.Min(amount, inventory.ComputeAmountThatFits(itemType));
+                internal MyFixedPoint AddItemAmountToInventory(MyInventory inventory, MyDefinitionId itemType, MyFixedPoint amount, MyPhysicalItemDefinition physicalItem)
+                {
+                    double freeVolume = (double)(inventory.MaxVolume - inventory.CurrentVolume);
+                    MyFixedPoint maxAdd = MyFixedPoint.Min(amount, inventory.ComputeAmountThatFits(itemType));
 
-            if (!inventory.CanItemsBeAdded(maxAdd, itemType))
-            {
-                Log.Msg($"Could not add {maxAdd.ToString()} of {itemType.ToString()}");
-                return MyFixedPoint.Zero;
-            }
-            inventory.AddItems(maxAdd, (MyObjectBuilder_PhysicalObject)MyObjectBuilderSerializer.CreateNewObject(physicalItem.Id));
-            return maxAdd;
-        }
-
-
-        internal void RefineContainers(MyDefinitionId oreItemId)
-        {
-            RefineInfo refineInfo = RefineInfo.Instance;
-            OreToIngotInfo info = null;
-            if (!refineInfo.OreToIngots.TryGetValue(oreItemId, out info))
-            {
-                Log.Msg($"Failed to get info for {oreItemId}");
-                return;
-            }
-
-            MyFixedPoint oreAmount = 0;
-            foreach (var inventory in inventories)
-            {
-                /*                if (info.Amount == 0)
-                                    continue;*/
-
-
-                //find container free volume 
-
-                //calculate ingots volume
-            }
-        }
-
-
+                    if (!inventory.CanItemsBeAdded(maxAdd, itemType))
+                    {
+                        Log.Msg($"Could not add {maxAdd.ToString()} of {itemType.ToString()}");
+                        return MyFixedPoint.Zero;
+                    }
+                    inventory.AddItems(maxAdd, (MyObjectBuilder_PhysicalObject)MyObjectBuilderSerializer.CreateNewObject(physicalItem.Id));
+                    return maxAdd;
+                }*/
 
     }
 }

@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using VRage.Game;
 
+
 namespace Catopia.Refined
 {
-    internal class RefineInfo
+    internal class RefiningInfo
     {
-        private static RefineInfo instance;
+        private static RefiningInfo instance;
 
 
         internal Dictionary<MyDefinitionId, OreToIngotInfo> OreToIngots;
@@ -28,15 +29,15 @@ namespace Catopia.Refined
 
         private List<ProcessOrderItem> processOrder = new List<ProcessOrderItem>();
 
-        public RefineInfo() { }
+        public RefiningInfo() { }
 
-        public static RefineInfo Instance
+        public static RefiningInfo Instance
         {
             get
             {
                 if (instance == null)
                 {
-                    instance = new RefineInfo();
+                    instance = new RefiningInfo();
                     instance.Setup();
                 }
                 return instance;
@@ -72,7 +73,7 @@ namespace Catopia.Refined
             processOrder = processOrder.OrderBy(x => x.VolumeRatio).ThenByDescending(x => x.ProductionTimeNorm).ToList();
         }
 
-        public List<MyDefinitionId> NewProcessOrderList()
+        public List<MyDefinitionId> NewOreOrderList()
         {
             var orderList = new List<MyDefinitionId>();
 
