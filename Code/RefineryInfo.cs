@@ -11,6 +11,7 @@ namespace Catopia.Refined
     {
         private string keyWord = "Rfnd";
 
+        private ReactorInfo reactorInfo = new ReactorInfo();
 
         internal float TotalPower;
         internal float TotalSpeed;
@@ -19,8 +20,11 @@ namespace Catopia.Refined
         internal float MaxSeconds;
         internal float AvailableSeconds;
 
-        internal void FindRefineriesInfo(IMyCubeGrid cubeGrid)
+        internal bool FindRefineriesInfo(IMyCubeGrid cubeGrid)
         {
+            if (!reactorInfo.FindReactorInfo(cubeGrid))
+                return false;
+
             float productivity;
             float effectiveness;
             float powerEfficiency;
@@ -42,10 +46,7 @@ namespace Catopia.Refined
                 //Log($"FatBlock={block.BlockDefinition.TypeId} {block.BlockDefinition.SubtypeName} {block.DetailedInfo} Enabled={block.Enabled} IsFunctional={block.IsFunctional}");
 
                 if (!block.CustomName.Contains(keyWord) || !block.Enabled || !block.IsFunctional)
-                    return;
-
-                //if (!inventories.AddRefineryInventories(block))
-                //    return;
+                    continue;
 
                 productivity = block.UpgradeValues["Productivity"];
                 effectiveness = block.UpgradeValues["Effectiveness"];
@@ -60,14 +61,43 @@ namespace Catopia.Refined
             }
             AvgYieldMultiplier = sumYieldMultiplier / refinaryCount;
             Log.Msg($"avgYieldMultiplier={AvgYieldMultiplier} refineriesTotalSpeed ={TotalSpeed} refineriesTotalPower={TotalPower}");
+
+            if (TotalPower == 0)
+            {
+                Log.Msg("No Refineries found.");
+                return false;
+            }
+            if (TotalPower > reactorInfo.MaxPower)
+            {
+                Log.Msg("Not enough reactor power.");
+                return false;
+            }
+            CalcRefinarySeconds();
+            if (MaxSeconds < 1)
+            {
+                Log.Msg("Not enough refinary process time.");
+                return false;
+            }
+            return true;
         }
 
-        internal void CalcRefinarySeconds(float MWseconds)
+        private void CalcRefinarySeconds()
         {
-            MaxSeconds = MWseconds / TotalPower * TotalSpeed;
+            MaxSeconds = reactorInfo.MWseconds / TotalPower * TotalSpeed;
             AvailableSeconds = MaxSeconds;
         }
 
+        internal void Refresh()
+        {
+            reactorInfo.Refresh();
+            CalcRefinarySeconds();
+
+        }
+
+        internal void ConsumeRefinarySeconds()
+        {
+            reactorInfo.ConsumeUranium((MaxSeconds - AvailableSeconds) * TotalPower / TotalSpeed);
+        }
 
     }
 }

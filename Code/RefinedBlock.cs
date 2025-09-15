@@ -18,19 +18,21 @@ namespace Catopia.Refined
         private IMyCargoContainer myRefinedBlock;
         private Guid LastTimeKey = new Guid("0a1db65e-a169-4cf2-9a83-8903add9ca26");
 
-        private bool run = false;
         private int updateCounter = PollPeriod;
 
-        // private List<Ingame.MyInventoryItem> inventory = new List<Ingame.MyInventoryItem>();
-
-
-
         private RefiningInfo refiningInfoI;
-        private ReactorInfo reactors = new ReactorInfo();
-        private RefineryInfo refineries = new RefineryInfo();
+        private int offlineS;
         private ContainerInfo containers;
 
+        private enum RunState
+        {
+            Stop,
+            Monitoring,
+            Detected,
+            Processing
+        }
 
+        private RunState runState;
 
         public override void Init(MyObjectBuilder_EntityBase objectBuilder)
         {
@@ -43,8 +45,6 @@ namespace Catopia.Refined
             if (Entity.Storage == null)
                 Entity.Storage = new MyModStorageComponent();
 
-
-            run = true;
             NeedsUpdate = MyEntityUpdateEnum.BEFORE_NEXT_FRAME;
             Log.Msg("Loaded...");
         }
@@ -52,69 +52,77 @@ namespace Catopia.Refined
         public override void UpdateOnceBeforeFrame()
         {
             base.UpdateOnceBeforeFrame();
+            if (!MyAPIGateway.Session.IsServer)
+                return;
+
             refiningInfoI = RefiningInfo.Instance;
             refiningInfoI.NewOreOrderList();
 
-            //            NeedsUpdate = MyEntityUpdateEnum.EACH_100TH_FRAME;
+            runState = RunState.Monitoring;
+            updateCounter = 0;
+            NeedsUpdate = MyEntityUpdateEnum.EACH_100TH_FRAME;
         }
 
         public override void UpdateAfterSimulation100()
         {
-            if (!run)
-                return;
+            Log.Msg($"Runstate={runState}");
 
-            if (!MyAPIGateway.Session.IsServer)
-                return;
-
-            if (--updateCounter > 0)
-                return;
-            updateCounter = PollPeriod;
-
-            long offlineS;
-            /*if (NotPaused(out offlineS))
-                return;*/
-
-            Log.Msg("Processing...");
-
-            offlineS = 1000;
-
-            reactors.FindReactorInfo(myRefinedBlock.CubeGrid);
-
-            if (reactors.AvaialbleUranium == 0)
+            switch (runState)
             {
-                Log.Msg($"Not enough reactor Uranium");
-                return;
+                case RunState.Stop:
+                    {
+                        break; ;
+                    }
+                case RunState.Monitoring:
+                    {
+                        if (--updateCounter > 0)
+                            return;
+                        updateCounter = PollPeriod;
+
+                        if (Paused())
+                            runState = RunState.Detected;
+                        break;
+                    }
+                case RunState.Detected:
+                    {
+                        Log.Msg("Detected...");
+
+                        containers = new ContainerInfo();
+
+                        if (!containers.FindContainerInventories(myRefinedBlock.GetInventory(), myRefinedBlock.CubeGrid))
+                        {
+                            Log.Msg("Abandon Processing");
+                            runState = RunState.Monitoring;
+
+                        }
+                        runState = RunState.Processing;
+                        break;
+                    }
+                case RunState.Processing:
+                    {
+                        Log.Msg("Processing...");
+
+                        if (!containers.RefineNext())
+                            runState = RunState.Monitoring;
+                        break;
+                    }
             }
 
-            refineries.FindRefineriesInfo(myRefinedBlock.CubeGrid);
-
-            if (refineries.TotalPower > reactors.MaxPower)
-            {
-                Log.Msg($"Not enough reactor power for refineries");
-                return;
-            }
-
-            refineries.CalcRefinarySeconds(reactors.MWseconds);
-
-            if (refineries.AvailableSeconds < 1)
-            {
-                Log.Msg($"Not enough refinary time");
-                return;
-            }
-
-            containers = new ContainerInfo(refineries);
-
-            containers.FindContainerInventories(myRefinedBlock.GetInventory(), myRefinedBlock.CubeGrid);
 
 
-
-            //run = false;
 
 
         }
 
-        private bool NotPaused(out long offlineS)
+        bool oneTime = false;
+        private bool Paused()
         {
+            offlineS = 1000;
+            if (oneTime)
+                return false;
+            oneTime = true;
+            return true;
+
             long nowS = DateTime.Now.Ticks / TimeSpan.TicksPerSecond;
             offlineS = 0;
             string lastTimeStr;
@@ -122,7 +130,7 @@ namespace Catopia.Refined
             {
                 long lastS = Convert.ToInt64(lastTimeStr);
                 if (lastS != 0)
-                    offlineS = Math.Min(DefaultMaxOffline, nowS - lastS);
+                    offlineS = (int)Math.Min(DefaultMaxOffline, nowS - lastS);
 
                 Log.Msg($"nowS={nowS} lastS={lastS} deltaTimeS={offlineS}");
             }
@@ -135,7 +143,7 @@ namespace Catopia.Refined
 
             Log.Msg($"deltaTimeS = {offlineS}");
 
-            return offlineS < DefaultMinOffline;
+            return offlineS > DefaultMinOffline;
         }
 
     }

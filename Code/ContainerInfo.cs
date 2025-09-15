@@ -16,16 +16,29 @@ namespace Catopia.Refined
         private List<IMyInventory> inventories = new List<IMyInventory>();
 
         private RefiningInfo refiningInfoI = RefiningInfo.Instance;
-        private RefineryInfo refineries;
+        private RefineryInfo refineryInfo;
+        private int index;
 
-        internal ContainerInfo(RefineryInfo refineryInfo)
+        internal enum Result
         {
-            refineries = refineryInfo;
+            Error,
+            Success,
+            NoTime,
+            NotEnoughVolume,
+            NotEnoughOre
+        }
+        internal ContainerInfo()
+        {
+            refineryInfo = new RefineryInfo();
         }
 
-        internal void FindContainerInventories(IMyInventory refinedInventory, IMyCubeGrid cubeGrid)
+        internal bool FindContainerInventories(IMyInventory refinedInventory, IMyCubeGrid cubeGrid)
         {
             Log.Msg("FindContainerInventories");
+
+            if (!refineryInfo.FindRefineriesInfo(cubeGrid))
+                return false;
+
             foreach (var container in cubeGrid.GetFatBlocks<IMyCargoContainer>())
             {
                 if (!container.CustomName.Contains(keyWord) || !container.IsFunctional)
@@ -38,88 +51,129 @@ namespace Catopia.Refined
                 Log.Msg($"Added `{container.CustomName}`");
 
             }
+
+            if (inventories.Count == 0)
+            {
+                Log.Msg("No container inventorries found");
+                return false;
+            }
+            index = 0;
+            return true;
         }
 
-
-        private bool RefineAll()
+        internal void Refresh()
         {
-            foreach (var inventory in inventories)
+            refineryInfo.Refresh();
+        }
+
+        internal bool RefineNext()
+        {
+            if (index >= inventories.Count)
+                return false;
+
+            refineryInfo.Refresh();
+
+            Result result = RefineContainer(inventories[index]);
+            refineryInfo.ConsumeRefinarySeconds();
+
+            switch (result)
             {
-                if (!RefineContainer(inventory))
-                    return false;
+                case Result.Success:
+                    {
+                        index++;
+                        break;
+                    }
+
+                default:
+                    {
+                        return false;
+                    }
             }
 
-            return true;
+            return index < inventories.Count;
 
         }
 
-        internal bool RefineContainer(IMyInventory inventory)
+        private Result RefineContainer(IMyInventory inventory)
         {
 
             var oreOrder = refiningInfoI.NewOreOrderList();
 
             foreach (var oreItemId in oreOrder)
             {
-                if (refineries.AvailableSeconds == 0)
-                    return false;
+                if (refineryInfo.AvailableSeconds == 0)
+                    return Result.NoTime;
 
                 OreToIngotInfo info = null;
                 if (!refiningInfoI.OreToIngots.TryGetValue(oreItemId, out info))
                 {
                     Log.Msg($"Failed to get info for {oreItemId}");
-                    return false;
+                    return Result.Error;
                 }
 
-                RefineInventoryOre(inventory, info);
+                Result result = RefineInventoryOre(inventory, info);
+                switch (result)
+                {
+                    case Result.Success:
+                        break;
+                    case Result.NotEnoughOre:
+                        break;
+                    default:
+                        {
+                            return result;
+                        }
+                }
             }
-            return true;
+            return Result.Success;
         }
 
-        internal void RefineInventoryOre(IMyInventory inventory, OreToIngotInfo info)
+        private Result RefineInventoryOre(IMyInventory inventory, OreToIngotInfo info)
         {
             int oreAmount = (int)inventory.GetItemAmount(info.ItemId);
             if (oreAmount == 0)
-                return;
+                return Result.NotEnoughOre;
 
             double prereqAmount = (double)info.Amount;
             int bpRuns = (int)Math.Truncate(oreAmount / prereqAmount);
             if (bpRuns == 0)
-                return;
+                return Result.NotEnoughOre;
 
             int freeVolume = (int)(inventory.MaxVolume - inventory.CurrentVolume);
-            float deltaVolume = info.IngotsVolume * refineries.AvgYieldMultiplier - (info.Volume * (float)info.Amount);
+            float deltaVolume = info.IngotsVolume * refineryInfo.AvgYieldMultiplier - (info.Volume * (float)info.Amount);
 
             if (deltaVolume > 0)
             {
                 bpRuns = (int)Math.Min(freeVolume / deltaVolume, bpRuns);
                 if (bpRuns < 1)
-                    return;
+                    return Result.NotEnoughVolume;
             }
 
             //power check.
             bpRuns = ConsumeRefinaryTime(info.ProductionTime, bpRuns);
+            if (bpRuns == 0)
+                return Result.NoTime;
 
             inventory.RemoveItemsOfType(bpRuns * info.Amount, info.ItemId);
 
             foreach (var ingot in info.Ingots)
             {
-                MyFixedPoint ingotAmount = ingot.Amount * (refineries.AvgYieldMultiplier * bpRuns);
+                MyFixedPoint ingotAmount = ingot.Amount * (refineryInfo.AvgYieldMultiplier * bpRuns);
                 inventory.AddItems(ingotAmount, (MyObjectBuilder_PhysicalObject)MyObjectBuilderSerializer.CreateNewObject(ingot.ItemId));
             }
-
+            return Result.Success;
         }
 
         private int ConsumeRefinaryTime(float productionTime, int bpRuns)
         {
             var neededTime = productionTime * bpRuns;
-            if (neededTime <= refineries.AvailableSeconds)
+            if (neededTime <= refineryInfo.AvailableSeconds)
             {
-                refineries.AvailableSeconds -= neededTime;
+                refineryInfo.AvailableSeconds -= neededTime;
                 return bpRuns;
             }
 
-            bpRuns = (int)(refineries.AvailableSeconds / productionTime);
-            refineries.AvailableSeconds = 0;
+            bpRuns = (int)(refineryInfo.AvailableSeconds / productionTime);
+            refineryInfo.AvailableSeconds = 0;
             return bpRuns;
         }
 

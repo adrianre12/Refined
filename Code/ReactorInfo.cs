@@ -22,7 +22,7 @@ namespace Catopia.Refined
 
         private List<MyInventory> inventories = new List<MyInventory>();
 
-        internal void FindReactorInfo(IMyCubeGrid cubeGrid)
+        internal bool FindReactorInfo(IMyCubeGrid cubeGrid)
         {
             inventories.Clear();
             MaxPower = 0;
@@ -32,7 +32,7 @@ namespace Catopia.Refined
             foreach (var block in cubeGrid.GetFatBlocks<IMyReactor>())
             {
                 if (!block.Enabled || !block.IsFunctional)
-                    return;
+                    continue;
                 MyInventory inv = (MyInventory)block.GetInventory();
                 inventories.Add(inv);
                 amountU = (int)inv.GetItemAmount(UDefId) - ReserveUranium;
@@ -42,6 +42,8 @@ namespace Catopia.Refined
                 MaxPower += block.MaxOutput;
                 //Log.Msg($"Reactor {block.CustomName} maxOutput={block.MaxOutput} amountU={amountU}");
             }
+
+            return AvaialbleUranium > 0;
         }
 
         internal void Refresh()
@@ -69,7 +71,7 @@ namespace Catopia.Refined
             }
         }
 
-        internal MyFixedPoint RemoveUraniumFromInventory(MyInventory inventory, MyFixedPoint amount)
+        private MyFixedPoint RemoveUraniumFromInventory(MyInventory inventory, MyFixedPoint amount)
         {
             MyFixedPoint foundAmount = inventory.GetItemAmount(UDefId);
             if (foundAmount == 0)
