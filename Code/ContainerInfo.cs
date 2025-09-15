@@ -27,9 +27,9 @@ namespace Catopia.Refined
             NotEnoughVolume,
             NotEnoughOre
         }
-        internal ContainerInfo()
+        internal ContainerInfo(int offlineS)
         {
-            refineryInfo = new RefineryInfo();
+            refineryInfo = new RefineryInfo(offlineS);
         }
 
         internal bool FindContainerInventories(IMyInventory refinedInventory, IMyCubeGrid cubeGrid)
@@ -75,6 +75,7 @@ namespace Catopia.Refined
 
             Result result = RefineContainer(inventories[index]);
             refineryInfo.ConsumeRefinarySeconds();
+            Log.Msg($"RefineContainer result={result}");
 
             switch (result)
             {
@@ -96,10 +97,7 @@ namespace Catopia.Refined
 
         private Result RefineContainer(IMyInventory inventory)
         {
-
-            var oreOrder = refiningInfoI.NewOreOrderList();
-
-            foreach (var oreItemId in oreOrder)
+            foreach (var oreItemId in refiningInfoI.OrderedOreList)
             {
                 if (refineryInfo.AvailableSeconds == 0)
                     return Result.NoTime;
@@ -112,6 +110,7 @@ namespace Catopia.Refined
                 }
 
                 Result result = RefineInventoryOre(inventory, info);
+                Log.Msg($"RefineInventoryOre result={result}");
                 switch (result)
                 {
                     case Result.Success:
@@ -129,6 +128,7 @@ namespace Catopia.Refined
 
         private Result RefineInventoryOre(IMyInventory inventory, OreToIngotInfo info)
         {
+            Log.Msg($"Refining {info.ItemId.SubtypeName}");
             int oreAmount = (int)inventory.GetItemAmount(info.ItemId);
             if (oreAmount == 0)
                 return Result.NotEnoughOre;
@@ -137,6 +137,7 @@ namespace Catopia.Refined
             int bpRuns = (int)Math.Truncate(oreAmount / prereqAmount);
             if (bpRuns == 0)
                 return Result.NotEnoughOre;
+            Log.Msg($"Found {info.ItemId.SubtypeName}={oreAmount} bpRuns={bpRuns}");
 
             int freeVolume = (int)(inventory.MaxVolume - inventory.CurrentVolume);
             float deltaVolume = info.IngotsVolume * refineryInfo.AvgYieldMultiplier - (info.Volume * (float)info.Amount);
@@ -147,11 +148,12 @@ namespace Catopia.Refined
                 if (bpRuns < 1)
                     return Result.NotEnoughVolume;
             }
-
+            Log.Msg($"After volume check bpRuns={bpRuns}");
             //power check.
             bpRuns = ConsumeRefinaryTime(info.ProductionTime, bpRuns);
             if (bpRuns == 0)
                 return Result.NoTime;
+            Log.Msg($"After time check bpRuns={bpRuns}");
 
             inventory.RemoveItemsOfType(bpRuns * info.Amount, info.ItemId);
 

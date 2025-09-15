@@ -27,7 +27,8 @@ namespace Catopia.Refined
             }
         }
 
-        private List<ProcessOrderItem> processOrder = new List<ProcessOrderItem>();
+        //private List<ProcessOrderItem> processOrder = new List<ProcessOrderItem>();
+        internal List<MyDefinitionId> OrderedOreList { get; private set; }
 
         public RefiningInfo() { }
 
@@ -50,6 +51,7 @@ namespace Catopia.Refined
 
             OreToIngots = new Dictionary<MyDefinitionId, OreToIngotInfo>();
             OreToIngotInfo info;
+            List<ProcessOrderItem> processOrder = new List<ProcessOrderItem>();
 
             MyBlueprintClassDefinition ingotBpClass = MyDefinitionManager.Static.GetBlueprintClass("Ingots");
             foreach (var bpc in ingotBpClass)
@@ -61,9 +63,9 @@ namespace Catopia.Refined
                     continue;
                 }
 
-                Log.Msg($"RefineInfo: Found {bpc.Prerequisites[0].Id.SubtypeName} " +
+                /*Log.Msg($"RefineInfo: Found {bpc.Prerequisites[0].Id.SubtypeName} " +
                 $"amountRatio={(float)bpc.Results[0].Amount / (float)bpc.Prerequisites[0].Amount} " +
-                $"buildTime={bpc.BaseProductionTimeInSeconds / (float)bpc.Prerequisites[0].Amount}");
+                $"buildTime={bpc.BaseProductionTimeInSeconds / (float)bpc.Prerequisites[0].Amount}");*/
 
                 info = new OreToIngotInfo(bpc);
                 OreToIngots.Add(bpc.Prerequisites[0].Id, info);
@@ -71,19 +73,13 @@ namespace Catopia.Refined
             }
             // sort to reduce volume
             processOrder = processOrder.OrderBy(x => x.VolumeRatio).ThenByDescending(x => x.ProductionTimeNorm).ToList();
-        }
 
-        public List<MyDefinitionId> NewOreOrderList()
-        {
-            var orderList = new List<MyDefinitionId>();
-
+            OrderedOreList = new List<MyDefinitionId>();
             foreach (var item in processOrder)
             {
-                Log.Msg($"{item.ItemId} {item.VolumeRatio} {item.ProductionTimeNorm}");
-                orderList.Add(item.ItemId);
+                //Log.Msg($"{item.ItemId} {item.VolumeRatio} {item.ProductionTimeNorm}");
+                OrderedOreList.Add(item.ItemId);
             }
-
-            return orderList;
         }
 
     }

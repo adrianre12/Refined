@@ -19,9 +19,16 @@ namespace Catopia.Refined
 
         internal float MaxSeconds;
         internal float AvailableSeconds;
+        private int offlineS;
+
+        public RefineryInfo(int offlineS)
+        {
+            this.offlineS = offlineS;
+        }
 
         internal bool FindRefineriesInfo(IMyCubeGrid cubeGrid)
         {
+            Log.Msg("FindRefineriesInfo");
             if (!reactorInfo.FindReactorInfo(cubeGrid))
                 return false;
 
@@ -45,13 +52,14 @@ namespace Catopia.Refined
             {
                 //Log($"FatBlock={block.BlockDefinition.TypeId} {block.BlockDefinition.SubtypeName} {block.DetailedInfo} Enabled={block.Enabled} IsFunctional={block.IsFunctional}");
 
-                if (!block.CustomName.Contains(keyWord) || !block.Enabled || !block.IsFunctional)
+                Log.Msg("refinary enabled check disabled");
+                if (!block.CustomName.Contains(keyWord))// || !block.Enabled || !block.IsFunctional)
                     continue;
 
                 productivity = block.UpgradeValues["Productivity"];
                 effectiveness = block.UpgradeValues["Effectiveness"];
                 powerEfficiency = block.UpgradeValues["PowerEfficiency"];
-                //Log($"Productivity={productivity} Effectiveness={effectiveness} PowerEfficiency={powerEfficiency}");
+                Log.Msg($"{block.CustomName} Productivity={productivity} Effectiveness={effectiveness} PowerEfficiency={powerEfficiency}");
 
                 refinaryCount++;
                 sumYieldMultiplier += effectiveness;
@@ -60,7 +68,7 @@ namespace Catopia.Refined
 
             }
             AvgYieldMultiplier = sumYieldMultiplier / refinaryCount;
-            Log.Msg($"avgYieldMultiplier={AvgYieldMultiplier} refineriesTotalSpeed ={TotalSpeed} refineriesTotalPower={TotalPower}");
+            Log.Msg($"avgYieldMultiplier={AvgYieldMultiplier} refineriesTotalSpeed={TotalSpeed} refineriesTotalPower={TotalPower}");
 
             if (TotalPower == 0)
             {
@@ -83,7 +91,7 @@ namespace Catopia.Refined
 
         private void CalcRefinarySeconds()
         {
-            MaxSeconds = reactorInfo.MWseconds / TotalPower * TotalSpeed;
+            MaxSeconds = Math.Min(reactorInfo.MWseconds, offlineS) / TotalPower * TotalSpeed;
             AvailableSeconds = MaxSeconds;
         }
 
@@ -91,6 +99,7 @@ namespace Catopia.Refined
         {
             reactorInfo.Refresh();
             CalcRefinarySeconds();
+            Log.Msg($"MaxSeconds={MaxSeconds} AvialableSeconds{AvailableSeconds}");
 
         }
 

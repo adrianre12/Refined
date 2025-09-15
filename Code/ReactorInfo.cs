@@ -57,12 +57,14 @@ namespace Catopia.Refined
                     continue;
                 AvaialbleUranium += amountU;
             }
+            Log.Msg($"AvailableUranium={AvaialbleUranium}");
         }
 
         internal void ConsumeUranium(float mWseconds)
         {
 
             MyFixedPoint remove = (MyFixedPoint)(mWseconds / MWsPerU); //ConsumedUranium
+            Log.Msg($"ConsumeUranium MWseconds={mWseconds} remove={remove}");
             foreach (var inventory in inventories)
             {
                 remove -= RemoveUraniumFromInventory(inventory, remove);

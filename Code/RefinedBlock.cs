@@ -56,7 +56,6 @@ namespace Catopia.Refined
                 return;
 
             refiningInfoI = RefiningInfo.Instance;
-            refiningInfoI.NewOreOrderList();
 
             runState = RunState.Monitoring;
             updateCounter = 0;
@@ -65,6 +64,7 @@ namespace Catopia.Refined
 
         public override void UpdateAfterSimulation100()
         {
+            var start = DateTime.Now;
             Log.Msg($"Runstate={runState}");
 
             switch (runState)
@@ -87,7 +87,7 @@ namespace Catopia.Refined
                     {
                         Log.Msg("Detected...");
 
-                        containers = new ContainerInfo();
+                        containers = new ContainerInfo(offlineS);
 
                         if (!containers.FindContainerInventories(myRefinedBlock.GetInventory(), myRefinedBlock.CubeGrid))
                         {
@@ -109,7 +109,7 @@ namespace Catopia.Refined
             }
 
 
-
+            Log.Msg($"Elapsed = {(DateTime.Now - start).TotalMilliseconds}");
 
 
         }
@@ -117,11 +117,11 @@ namespace Catopia.Refined
         bool oneTime = false;
         private bool Paused()
         {
-            offlineS = 1000;
-            if (oneTime)
-                return false;
-            oneTime = true;
-            return true;
+            /*            offlineS = 1000;
+                        if (oneTime)
+                            return false;
+                        oneTime = true;
+                        return true;*/
 
             long nowS = DateTime.Now.Ticks / TimeSpan.TicksPerSecond;
             offlineS = 0;
