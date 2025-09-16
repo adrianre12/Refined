@@ -1,8 +1,10 @@
 using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI;
 using System;
+using System.Collections.Generic;
 using VRage.Game;
 using VRage.Game.Components;
+using VRage.Game.ModAPI;
 using VRage.ModAPI;
 using VRage.ObjectBuilders;
 
@@ -20,9 +22,9 @@ namespace Catopia.Refined
 
         private int updateCounter = PollPeriod;
 
-        private RefiningInfo refiningInfoI;
         private int offlineS;
         private ContainerInfo containers;
+
 
         private enum RunState
         {
@@ -55,7 +57,7 @@ namespace Catopia.Refined
             if (!MyAPIGateway.Session.IsServer)
                 return;
 
-            refiningInfoI = RefiningInfo.Instance;
+            var refiningInfoI = RefiningInfo.Instance; // create instance now.
 
             runState = RunState.Monitoring;
             updateCounter = 0;
@@ -114,7 +116,23 @@ namespace Catopia.Refined
 
         }
 
-        bool oneTime = false;
+        private bool DuplicateBlocks()
+        {
+            var blockDef = myRefinedBlock.SlimBlock.BlockDefinition.Id;
+            List<IMySlimBlock> slimBlocks = new List<IMySlimBlock>();
+            myRefinedBlock.CubeGrid.GetBlocks(slimBlocks, (sb) =>
+            {
+                return blockDef.Equals(sb.BlockDefinition.Id);
+            });
+
+            foreach (var sb in slimBlocks)
+            {
+                Log.Msg($"Found SlimBlock {sb.FatBlock.DisplayNameText}");
+            }
+            return slimBlocks.Count > 1;
+        }
+
+        //bool oneTime = false;
         private bool Paused()
         {
             /*            offlineS = 1000;

@@ -11,7 +11,8 @@ namespace Catopia.Refined
 {
     internal class ContainerInfo
     {
-        private string keyWord = "Rfnd";
+        internal string KeyWord = "Rfnd";
+        internal int MaxRefineries = 10;
 
         private List<IMyInventory> inventories = new List<IMyInventory>();
 
@@ -41,7 +42,7 @@ namespace Catopia.Refined
 
             foreach (var container in cubeGrid.GetFatBlocks<IMyCargoContainer>())
             {
-                if (!container.CustomName.Contains(keyWord) || !container.IsFunctional)
+                if (!container.CustomName.Contains(KeyWord) || !container.IsFunctional)
                     continue;
                 var inventory = container.GetInventory();
                 if (!refinedInventory.IsConnectedTo(inventory))
@@ -68,7 +69,7 @@ namespace Catopia.Refined
 
         internal bool RefineNext()
         {
-            if (index >= inventories.Count)
+            if (index >= inventories.Count || index >= MaxRefineries)
                 return false;
 
             refineryInfo.Refresh();
