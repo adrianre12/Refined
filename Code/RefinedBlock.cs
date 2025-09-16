@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using VRage.Game;
 using VRage.Game.Components;
-using VRage.Game.ModAPI;
 using VRage.ModAPI;
 using VRage.ObjectBuilders;
 
@@ -17,6 +16,8 @@ namespace Catopia.Refined
         public const int DefaultMaxOffline = 168 * 3600; //seconds
         public const int PollPeriod = 3; //4.8s
 
+        private static Dictionary<long, long> blockRegister = new Dictionary<long, long>();
+
         private IMyCargoContainer myRefinedBlock;
         private Guid LastTimeKey = new Guid("0a1db65e-a169-4cf2-9a83-8903add9ca26");
 
@@ -28,7 +29,6 @@ namespace Catopia.Refined
 
         private enum RunState
         {
-            Stop,
             Monitoring,
             Detected,
             Processing
@@ -66,21 +66,22 @@ namespace Catopia.Refined
 
         public override void UpdateAfterSimulation100()
         {
+            if (--updateCounter > 0)
+                return;
+            updateCounter = PollPeriod;
+
+            if (CheckDuplicate())
+            {
+                Log.Msg($"Duplicate {myRefinedBlock.CustomName}");
+                return;
+            }
             var start = DateTime.Now;
             Log.Msg($"Runstate={runState}");
 
             switch (runState)
             {
-                case RunState.Stop:
-                    {
-                        break; ;
-                    }
                 case RunState.Monitoring:
                     {
-                        if (--updateCounter > 0)
-                            return;
-                        updateCounter = PollPeriod;
-
                         if (Paused())
                             runState = RunState.Detected;
                         break;
@@ -116,20 +117,28 @@ namespace Catopia.Refined
 
         }
 
-        private bool DuplicateBlocks()
+        private bool CheckDuplicate()
         {
-            var blockDef = myRefinedBlock.SlimBlock.BlockDefinition.Id;
-            List<IMySlimBlock> slimBlocks = new List<IMySlimBlock>();
-            myRefinedBlock.CubeGrid.GetBlocks(slimBlocks, (sb) =>
+            var gridId = myRefinedBlock.CubeGrid.EntityId;
+            long id;
+            if (!blockRegister.TryGetValue(gridId, out id))
             {
-                return blockDef.Equals(sb.BlockDefinition.Id);
-            });
-
-            foreach (var sb in slimBlocks)
-            {
-                Log.Msg($"Found SlimBlock {sb.FatBlock.DisplayNameText}");
+                blockRegister[gridId] = myRefinedBlock.EntityId;
+                return false;
             }
-            return slimBlocks.Count > 1;
+            if (id == myRefinedBlock.EntityId)
+                return false;
+            return true;
+        }
+
+        public override void Close()
+        {
+            var gridId = myRefinedBlock.CubeGrid.EntityId;
+            long id;
+            if (!blockRegister.TryGetValue(gridId, out id))
+                return;
+            if (id == myRefinedBlock.EntityId)
+                blockRegister.Remove(gridId);
         }
 
         //bool oneTime = false;
