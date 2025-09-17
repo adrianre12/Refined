@@ -2,15 +2,18 @@ using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using VRage.Game;
 using VRage.Game.Components;
+using VRage.Game.ModAPI.Network;
 using VRage.ModAPI;
 using VRage.ObjectBuilders;
+using VRage.Sync;
 
 namespace Catopia.Refined
 {
     [MyEntityComponentDescriptor(typeof(MyObjectBuilder_CargoContainer), false, "LargeBlockRefined")]
-    public class RefinedGameLogic : MyGameLogicComponent
+    public class RefinedBlock : MyGameLogicComponent
     {
         public const int DefaultMinOffline = 30 * 60; //seconds
         public const int DefaultMaxOffline = 168 * 3600; //seconds
@@ -26,6 +29,9 @@ namespace Catopia.Refined
         private int offlineS;
         private ContainerInfo containers;
 
+        private Stopwatch stopWatch = new Stopwatch();
+
+        internal MySync<bool, SyncDirection.BothWays> testButtonState;
 
         private enum RunState
         {
@@ -40,6 +46,9 @@ namespace Catopia.Refined
         {
 
             myRefinedBlock = Entity as IMyCargoContainer;
+            testButtonState.Value = false;
+
+            NeedsUpdate = MyEntityUpdateEnum.BEFORE_NEXT_FRAME;
 
             if (!MyAPIGateway.Session.IsServer)
                 return;
@@ -47,13 +56,15 @@ namespace Catopia.Refined
             if (Entity.Storage == null)
                 Entity.Storage = new MyModStorageComponent();
 
-            NeedsUpdate = MyEntityUpdateEnum.BEFORE_NEXT_FRAME;
             Log.Msg("Loaded...");
         }
 
         public override void UpdateOnceBeforeFrame()
         {
             base.UpdateOnceBeforeFrame();
+
+            TerminalControls.DoOnce(ModContext);
+
             if (!MyAPIGateway.Session.IsServer)
                 return;
 
@@ -61,22 +72,35 @@ namespace Catopia.Refined
 
             runState = RunState.Monitoring;
             updateCounter = 0;
+            testButtonState.ValueChanged += TestButtonState_ValueChanged;
             NeedsUpdate = MyEntityUpdateEnum.EACH_100TH_FRAME;
+
+            Log.Debug = true;
+        }
+
+        private void TestButtonState_ValueChanged(MySync<bool, SyncDirection.BothWays> obj)
+        {
+            containers = new ContainerInfo(0);
+            updateCounter = PollPeriod;
+            containers.ReFillInventories(myRefinedBlock.GetInventory(), myRefinedBlock.CubeGrid);
+            long thenS = (DateTime.Now.Ticks / TimeSpan.TicksPerSecond) - 86400;
+            Entity.Storage[LastTimeKey] = thenS.ToString();
         }
 
         public override void UpdateAfterSimulation100()
         {
+            stopWatch.Restart();
+            var start = DateTime.Now.Ticks;
             if (--updateCounter > 0)
                 return;
             updateCounter = PollPeriod;
 
             if (CheckDuplicate())
             {
-                Log.Msg($"Duplicate {myRefinedBlock.CustomName}");
+                if (Log.Debug) Log.Msg($"Duplicate {myRefinedBlock.CustomName}");
                 return;
             }
-            var start = DateTime.Now;
-            Log.Msg($"Runstate={runState}");
+            if (Log.Debug) Log.Msg($"Runstate={runState}");
 
             switch (runState)
             {
@@ -88,13 +112,13 @@ namespace Catopia.Refined
                     }
                 case RunState.Detected:
                     {
-                        Log.Msg("Detected...");
+                        if (Log.Debug) Log.Msg("Detected...");
 
                         containers = new ContainerInfo(offlineS);
 
                         if (!containers.FindContainerInventories(myRefinedBlock.GetInventory(), myRefinedBlock.CubeGrid))
                         {
-                            Log.Msg("Abandon Processing");
+                            if (Log.Debug) Log.Msg("Abandon Processing");
                             runState = RunState.Monitoring;
 
                         }
@@ -103,16 +127,19 @@ namespace Catopia.Refined
                     }
                 case RunState.Processing:
                     {
-                        Log.Msg("Processing...");
+                        if (Log.Debug) Log.Msg("Processing...");
 
                         if (!containers.RefineNext())
+                        {
+                            containers.RefineEnd();
                             runState = RunState.Monitoring;
+                        }
                         break;
                     }
             }
 
 
-            Log.Msg($"Elapsed = {(DateTime.Now - start).TotalMilliseconds}");
+            Log.Msg($"Elapsed stopWatchticks={stopWatch.ElapsedTicks}");
 
 
         }
@@ -131,25 +158,26 @@ namespace Catopia.Refined
             return true;
         }
 
+        internal void TestButtonToggle()
+        {
+            testButtonState.Value = !testButtonState.Value;
+        }
+
         public override void Close()
         {
+            if (!MyAPIGateway.Session.IsServer)
+                return;
             var gridId = myRefinedBlock.CubeGrid.EntityId;
             long id;
             if (!blockRegister.TryGetValue(gridId, out id))
                 return;
             if (id == myRefinedBlock.EntityId)
                 blockRegister.Remove(gridId);
+            testButtonState.ValueChanged -= TestButtonState_ValueChanged;
         }
 
-        //bool oneTime = false;
         private bool Paused()
         {
-            /*            offlineS = 1000;
-                        if (oneTime)
-                            return false;
-                        oneTime = true;
-                        return true;*/
-
             long nowS = DateTime.Now.Ticks / TimeSpan.TicksPerSecond;
             offlineS = 0;
             string lastTimeStr;
@@ -159,7 +187,7 @@ namespace Catopia.Refined
                 if (lastS != 0)
                     offlineS = (int)Math.Min(DefaultMaxOffline, nowS - lastS);
 
-                Log.Msg($"nowS={nowS} lastS={lastS} deltaTimeS={offlineS}");
+                //Log.Msg($"nowS={nowS} lastS={lastS} deltaTimeS={offlineS}");
             }
             else
             {
@@ -168,7 +196,7 @@ namespace Catopia.Refined
 
             Entity.Storage[LastTimeKey] = nowS.ToString();
 
-            Log.Msg($"deltaTimeS = {offlineS}");
+            if (Log.Debug) Log.Msg($"deltaTimeS = {offlineS}");
 
             return offlineS > DefaultMinOffline;
         }

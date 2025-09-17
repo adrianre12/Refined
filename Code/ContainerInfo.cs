@@ -6,7 +6,6 @@ using VRage.Game;
 using VRage.Game.ModAPI;
 using VRage.ObjectBuilders;
 
-
 namespace Catopia.Refined
 {
     internal class ContainerInfo
@@ -35,7 +34,7 @@ namespace Catopia.Refined
 
         internal bool FindContainerInventories(IMyInventory refinedInventory, IMyCubeGrid cubeGrid)
         {
-            Log.Msg("FindContainerInventories");
+            if (Log.Debug) Log.Msg("FindContainerInventories");
 
             if (!refineryInfo.FindRefineriesInfo(cubeGrid))
                 return false;
@@ -49,7 +48,7 @@ namespace Catopia.Refined
                     continue;
 
                 inventories.Add(container.GetInventory());
-                Log.Msg($"Added `{container.CustomName}`");
+                if (Log.Debug) Log.Msg($"Added `{container.CustomName}`");
 
             }
 
@@ -76,7 +75,7 @@ namespace Catopia.Refined
 
             Result result = RefineContainer(inventories[index]);
             refineryInfo.ConsumeRefinarySeconds();
-            Log.Msg($"RefineContainer result={result}");
+            if (Log.Debug) Log.Msg($"RefineContainer result={result}");
 
             switch (result)
             {
@@ -96,6 +95,11 @@ namespace Catopia.Refined
 
         }
 
+        internal void RefineEnd()
+        {
+            refineryInfo.EnableRefineries();
+        }
+
         private Result RefineContainer(IMyInventory inventory)
         {
             foreach (var oreItemId in refiningInfoI.OrderedOreList)
@@ -111,7 +115,7 @@ namespace Catopia.Refined
                 }
 
                 Result result = RefineInventoryOre(inventory, info);
-                Log.Msg($"RefineInventoryOre result={result}");
+                if (Log.Debug) Log.Msg($"RefineInventoryOre result={result}");
                 switch (result)
                 {
                     case Result.Success:
@@ -129,7 +133,8 @@ namespace Catopia.Refined
 
         private Result RefineInventoryOre(IMyInventory inventory, OreToIngotInfo info)
         {
-            Log.Msg($"Refining {info.ItemId.SubtypeName}");
+            if (Log.Debug) Log.Msg($"Refining {info.ItemId.SubtypeName}");
+
             int oreAmount = (int)inventory.GetItemAmount(info.ItemId);
             if (oreAmount == 0)
                 return Result.NotEnoughOre;
@@ -138,7 +143,7 @@ namespace Catopia.Refined
             int bpRuns = (int)Math.Truncate(oreAmount / prereqAmount);
             if (bpRuns == 0)
                 return Result.NotEnoughOre;
-            Log.Msg($"Found {info.ItemId.SubtypeName}={oreAmount} bpRuns={bpRuns}");
+            if (Log.Debug) Log.Msg($"Found {info.ItemId.SubtypeName}={oreAmount} bpRuns={bpRuns}");
 
             int freeVolume = (int)(inventory.MaxVolume - inventory.CurrentVolume);
             float deltaVolume = info.IngotsVolume * refineryInfo.AvgYieldMultiplier - (info.Volume * (float)info.Amount);
@@ -149,12 +154,12 @@ namespace Catopia.Refined
                 if (bpRuns < 1)
                     return Result.NotEnoughVolume;
             }
-            Log.Msg($"After volume check bpRuns={bpRuns}");
+            if (Log.Debug) Log.Msg($"After volume check bpRuns={bpRuns}");
             //power check.
             bpRuns = ConsumeRefinaryTime(info.ProductionTime, bpRuns);
             if (bpRuns == 0)
                 return Result.NoTime;
-            Log.Msg($"After time check bpRuns={bpRuns}");
+            if (Log.Debug) Log.Msg($"After time check bpRuns={bpRuns}");
 
             inventory.RemoveItemsOfType(bpRuns * info.Amount, info.ItemId);
 
@@ -180,6 +185,28 @@ namespace Catopia.Refined
             return bpRuns;
         }
 
+        internal void ReFillInventories(IMyInventory refinedInventory, IMyCubeGrid cubeGrid)
+        {
+            Log.Msg("ReFillInventories");
 
+            foreach (var container in cubeGrid.GetFatBlocks<IMyCargoContainer>())
+            {
+                if (!container.CustomName.Contains(KeyWord) || !container.IsFunctional)
+                    continue;
+                var inventory = container.GetInventory();
+                if (!refinedInventory.IsConnectedTo(inventory))
+                    continue;
+
+                inventory.Clear();
+                MyFixedPoint amount = 1000;
+                foreach (var oreItemId in refiningInfoI.OrderedOreList)
+                {
+                    inventory.AddItems(amount, (MyObjectBuilder_PhysicalObject)MyObjectBuilderSerializer.CreateNewObject(oreItemId));
+                }
+
+                Log.Msg($"Refilled `{container.CustomName}`");
+
+            }
+        }
     }
 }

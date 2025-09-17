@@ -47,7 +47,7 @@ namespace Catopia.Refined
 
         private void Setup()
         {
-            Log.Msg("RefineInfo: Starting");
+            if (Log.Debug) Log.Msg("RefineInfo: Starting");
 
             OreToIngots = new Dictionary<MyDefinitionId, OreToIngotInfo>();
             OreToIngotInfo info;

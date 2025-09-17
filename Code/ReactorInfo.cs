@@ -28,7 +28,7 @@ namespace Catopia.Refined
             MaxPower = 0;
             AvaialbleUranium = 0;
             int amountU = 0;
-            Log.Msg("FindReactorInfo");
+            if (Log.Debug) Log.Msg("FindReactorInfo");
             foreach (var block in cubeGrid.GetFatBlocks<IMyReactor>())
             {
                 if (!block.Enabled || !block.IsFunctional)
@@ -57,14 +57,14 @@ namespace Catopia.Refined
                     continue;
                 AvaialbleUranium += amountU;
             }
-            Log.Msg($"AvailableUranium={AvaialbleUranium}");
+            if (Log.Debug) Log.Msg($"AvailableUranium={AvaialbleUranium}");
         }
 
         internal void ConsumeUranium(float mWseconds)
         {
 
             MyFixedPoint remove = (MyFixedPoint)(mWseconds / MWsPerU); //ConsumedUranium
-            Log.Msg($"ConsumeUranium MWseconds={mWseconds} remove={remove}");
+            if (Log.Debug) Log.Msg($"ConsumeUranium MWseconds={mWseconds} remove={remove}");
             foreach (var inventory in inventories)
             {
                 remove -= RemoveUraniumFromInventory(inventory, remove);

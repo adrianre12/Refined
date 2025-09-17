@@ -44,7 +44,7 @@ namespace Catopia.Refined
             {
                 Ingots.Add(new ItemInfo(item));
             }
-            Log.Msg($"OreToIngotInfo: {bluePrintClass.Id.SubtypeName} Amount={Amount} Volume={Volume} IngotsVolume={IngotsVolume} ProductionTimeNorm={ProductionTime} Ingots.Count={Ingots.Count}");
+            if (Log.Debug) Log.Msg($"OreToIngotInfo: {bluePrintClass.Id.SubtypeName} Amount={Amount} Volume={Volume} IngotsVolume={IngotsVolume} ProductionTimeNorm={ProductionTime} Ingots.Count={Ingots.Count}");
         }
 
 

@@ -6,16 +6,10 @@ namespace Catopia.Refined
     {
         const string Prefix = "Refined";
 
-        public static bool DebugLog;
+        public static bool Debug;
         public static void Msg(string msg)
         {
             MyLog.Default.WriteLine($"{Prefix}: {msg}");
-        }
-
-        public static void Debug(string msg)
-        {
-            if (DebugLog)
-                Msg($"[DEBUG] {msg}");
         }
     }
 }

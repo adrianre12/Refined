@@ -1,6 +1,7 @@
 ﻿using Sandbox.Definitions;
 using Sandbox.ModAPI;
 using System;
+using System.Collections.Generic;
 using VRage.Game;
 using VRage.Game.ModAPI;
 
@@ -21,6 +22,8 @@ namespace Catopia.Refined
         internal float AvailableSeconds;
         private int offlineS;
 
+        private List<IMyRefinery> refineryList = new List<IMyRefinery>();
+
         public RefineryInfo(int offlineS)
         {
             this.offlineS = offlineS;
@@ -28,9 +31,11 @@ namespace Catopia.Refined
 
         internal bool FindRefineriesInfo(IMyCubeGrid cubeGrid)
         {
-            Log.Msg("FindRefineriesInfo");
+            if (Log.Debug) Log.Msg("FindRefineriesInfo");
             if (!reactorInfo.FindReactorInfo(cubeGrid))
                 return false;
+
+            refineryList.Clear();
 
             float productivity;
             float effectiveness;
@@ -52,41 +57,50 @@ namespace Catopia.Refined
             {
                 //Log($"FatBlock={block.BlockDefinition.TypeId} {block.BlockDefinition.SubtypeName} {block.DetailedInfo} Enabled={block.Enabled} IsFunctional={block.IsFunctional}");
 
-                Log.Msg("refinary enabled check disabled");
-                if (!block.CustomName.Contains(keyWord))// || !block.Enabled || !block.IsFunctional)
+                if (!block.CustomName.Contains(keyWord) || !block.Enabled || !block.IsFunctional)
                     continue;
 
                 productivity = block.UpgradeValues["Productivity"];
                 effectiveness = block.UpgradeValues["Effectiveness"];
                 powerEfficiency = block.UpgradeValues["PowerEfficiency"];
-                Log.Msg($"{block.CustomName} Productivity={productivity} Effectiveness={effectiveness} PowerEfficiency={powerEfficiency}");
+                if (Log.Debug) Log.Msg($"{block.CustomName} Productivity={productivity} Effectiveness={effectiveness} PowerEfficiency={powerEfficiency}");
 
                 refinaryCount++;
                 sumYieldMultiplier += effectiveness;
                 TotalSpeed += (float)Math.Round((baseRefineSpeed + productivity) * refinerySpeedMultiplier);
                 TotalPower += baseOperationalPowerConsumption / powerEfficiency * (1 + productivity);
 
+                refineryList.Add(block);
+                block.Enabled = false;
             }
             AvgYieldMultiplier = sumYieldMultiplier / refinaryCount;
-            Log.Msg($"avgYieldMultiplier={AvgYieldMultiplier} refineriesTotalSpeed={TotalSpeed} refineriesTotalPower={TotalPower}");
+            if (Log.Debug) Log.Msg($"avgYieldMultiplier={AvgYieldMultiplier} refineriesTotalSpeed={TotalSpeed} refineriesTotalPower={TotalPower}");
 
             if (TotalPower == 0)
             {
-                Log.Msg("No Refineries found.");
+                if (Log.Debug) Log.Msg("No Refineries found.");
                 return false;
             }
             if (TotalPower > reactorInfo.MaxPower)
             {
-                Log.Msg("Not enough reactor power.");
+                if (Log.Debug) Log.Msg("Not enough reactor power.");
                 return false;
             }
             CalcRefinarySeconds();
             if (MaxSeconds < 1)
             {
-                Log.Msg("Not enough refinary process time.");
+                if (Log.Debug) Log.Msg("Not enough refinary process time.");
                 return false;
             }
             return true;
+        }
+
+        internal void EnableRefineries()
+        {
+            foreach (var block in refineryList)
+            {
+                block.Enabled = true;
+            }
         }
 
         private void CalcRefinarySeconds()
@@ -99,7 +113,7 @@ namespace Catopia.Refined
         {
             reactorInfo.Refresh();
             CalcRefinarySeconds();
-            Log.Msg($"MaxSeconds={MaxSeconds} AvialableSeconds{AvailableSeconds}");
+            if (Log.Debug) Log.Msg($"MaxSeconds={MaxSeconds} AvialableSeconds{AvailableSeconds}");
 
         }
 
