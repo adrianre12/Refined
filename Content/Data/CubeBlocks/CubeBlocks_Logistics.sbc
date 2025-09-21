@@ -2,6 +2,7 @@
 <Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
 	<CubeBlocks>
 		<!-- Region Cargo Container-->
+		<!--
 		<Definition xsi:type="MyObjectBuilder_CargoContainerDefinition">
 			<Id>
 				<TypeId>CargoContainer</TypeId>
@@ -51,7 +52,7 @@
 			<DestroySound>WepSmallWarheadExpl</DestroySound>
 			<PCU>10</PCU>
 			<IsAirTight>true</IsAirTight>
-		</Definition>
+		</Definition> -->
 		<!-- End Region Cargo Container-->
 	</CubeBlocks>
 </Definitions>

@@ -12,7 +12,9 @@ using VRage.Sync;
 
 namespace Catopia.Refined
 {
-    [MyEntityComponentDescriptor(typeof(MyObjectBuilder_CargoContainer), false, "LargeBlockRefined")]
+    // [MyEntityComponentDescriptor(typeof(MyObjectBuilder_TextPanel), false, "RefinedBlock")]
+    [MyEntityComponentDescriptor(typeof(MyObjectBuilder_FunctionalBlock), false, "RefinedBlock")]
+
     public class RefinedBlock : MyGameLogicComponent
     {
         public const int DefaultMinOffline = 30 * 60; //seconds
@@ -21,7 +23,9 @@ namespace Catopia.Refined
 
         private static Dictionary<long, long> blockRegister = new Dictionary<long, long>();
 
-        private IMyCargoContainer myRefinedBlock;
+        //private IMyTextPanel myRefinedBlock;
+        private IMyFunctionalBlock myRefinedBlock;
+
         private Guid LastTimeKey = new Guid("0a1db65e-a169-4cf2-9a83-8903add9ca26");
 
         private int updateCounter = PollPeriod;
@@ -32,6 +36,8 @@ namespace Catopia.Refined
         private Stopwatch stopWatch = new Stopwatch();
 
         internal MySync<bool, SyncDirection.BothWays> testButtonState;
+
+        private ScreenRefined screen0;
 
         private enum RunState
         {
@@ -45,7 +51,7 @@ namespace Catopia.Refined
         public override void Init(MyObjectBuilder_EntityBase objectBuilder)
         {
 
-            myRefinedBlock = Entity as IMyCargoContainer;
+            myRefinedBlock = Entity as IMyFunctionalBlock; // IMyTextPanel;
             testButtonState.Value = false;
 
             NeedsUpdate = MyEntityUpdateEnum.BEFORE_NEXT_FRAME;
@@ -76,6 +82,8 @@ namespace Catopia.Refined
             NeedsUpdate = MyEntityUpdateEnum.EACH_100TH_FRAME;
 
             Log.Debug = true;
+            screen0 = new ScreenRefined((IMyTextSurfaceProvider)myRefinedBlock, 0);
+            screen0.ScreenText();
         }
 
         private void TestButtonState_ValueChanged(MySync<bool, SyncDirection.BothWays> obj)
@@ -91,6 +99,8 @@ namespace Catopia.Refined
         {
             stopWatch.Restart();
             var start = DateTime.Now.Ticks;
+            screen0.AddText($"Tick {updateCounter}");
+
             if (--updateCounter > 0)
                 return;
             updateCounter = PollPeriod;

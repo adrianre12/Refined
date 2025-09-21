@@ -27,15 +27,15 @@ namespace Catopia.Refined
         static void CreateControls()
         {
             {
-                var c = MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlSeparator, IMyCargoContainer>(""); // separators don't store the id
+                var c = MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlSeparator, IMyTextPanel>(""); // separators don't store the id
                 c.SupportsMultipleBlocks = true;
                 c.Visible = CustomVisibleCondition;
 
-                MyAPIGateway.TerminalControls.AddControl<IMyCargoContainer>(c);
+                MyAPIGateway.TerminalControls.AddControl<IMyTextPanel>(c);
             }
 
             {
-                var c = MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlButton, IMyCargoContainer>(IdPrefix + "TestButton");
+                var c = MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlButton, IMyTextPanel>(IdPrefix + "TestButton");
                 c.Title = MyStringId.GetOrCompute("Test");
                 c.Tooltip = MyStringId.GetOrCompute("Trigger a offline period");
                 c.SupportsMultipleBlocks = true;
@@ -43,7 +43,7 @@ namespace Catopia.Refined
 
                 c.Action = (b) => { b?.GameLogic?.GetAs<RefinedBlock>()?.TestButtonToggle(); };
 
-                MyAPIGateway.TerminalControls.AddControl<IMyCargoContainer>(c);
+                MyAPIGateway.TerminalControls.AddControl<IMyTextPanel>(c);
             }
         }
     }

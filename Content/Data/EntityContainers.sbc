@@ -1,16 +1,30 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-    <EntityContainers>
+	<EntityContainers>
 
-        <Container>
-            <Id>
-                <TypeId>CargoContainer</TypeId>
-                <SubtypeId>LargeBlockRefined</SubtypeId>
-            </Id>
-            <DefaultComponents>
-                <Component BuilderType="MyObjectBuilder_Inventory" SubtypeId="LargeBlockRefined" ForceCreate="true"/>
+		<Container>
+			<Id>
+				<TypeId>TextPanel</TypeId>
+				<SubtypeId>RefinedBlock</SubtypeId>
+			</Id>
+			<DefaultComponents>
+				<Component BuilderType="MyObjectBuilder_Inventory" SubtypeId="RefinedBlock" ForceCreate="true"/>
+				<Component BuilderType="MyObjectBuilder_LcdSurfaceComponent" ForceCreate="true"/>
+				<Component BuilderType="MyObjectBuilder_ConveyorEndpointComponent" SubtypeId="RefinedBlock" ForceCreate="true"/>
 			</DefaultComponents>
-        </Container>
-        
-    </EntityContainers>
+		</Container>
+
+		<Container>
+			<Id>
+				<TypeId>FunctionalBlock</TypeId>
+				<SubtypeId>RefinedBlock</SubtypeId>
+			</Id>
+			<DefaultComponents>
+				<Component BuilderType="MyObjectBuilder_Inventory" SubtypeId="RefinedBlock" ForceCreate="true"/>
+				<Component BuilderType="MyObjectBuilder_LcdSurfaceComponent" ForceCreate="true"/>
+				<Component BuilderType="MyObjectBuilder_ConveyorEndpointComponent" SubtypeId="RefinedBlock" ForceCreate="true"/>
+			</DefaultComponents>
+		</Container>
+	
+	</EntityContainers>
 </Definitions>
