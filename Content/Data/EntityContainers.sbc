@@ -14,17 +14,5 @@
 			</DefaultComponents>
 		</Container>
 
-		<Container>
-			<Id>
-				<TypeId>FunctionalBlock</TypeId>
-				<SubtypeId>RefinedBlock</SubtypeId>
-			</Id>
-			<DefaultComponents>
-				<Component BuilderType="MyObjectBuilder_Inventory" SubtypeId="RefinedBlock" ForceCreate="true"/>
-				<Component BuilderType="MyObjectBuilder_LcdSurfaceComponent" ForceCreate="true"/>
-				<Component BuilderType="MyObjectBuilder_ConveyorEndpointComponent" SubtypeId="RefinedBlock" ForceCreate="true"/>
-			</DefaultComponents>
-		</Container>
-	
 	</EntityContainers>
 </Definitions>

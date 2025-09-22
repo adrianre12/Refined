@@ -10,11 +10,6 @@ namespace Catopia.Refined
         private List<string> screenText = new List<string>();
 
         private readonly Color GreenCRT = new Color(51, 255, 0);
-        private string energyName;
-        private string unitName;
-        private string holderPlural;
-        private string holderSingular;
-        private string noteLine;
 
         internal ScreenRefined(IMyTextSurfaceProvider surfaceProvider, int index)
         {
@@ -99,7 +94,7 @@ namespace Catopia.Refined
 
         internal void AddText(string text)
         {
-            if (screenText.Count > 11)
+            if (screenText.Count > 19)
                 screenText.RemoveAt(0);
             screenText.Add(text);
         }

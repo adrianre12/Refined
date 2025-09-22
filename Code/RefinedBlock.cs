@@ -1,9 +1,9 @@
+using Sandbox.Common.ObjectBuilders;
 using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.ModAPI.Network;
 using VRage.ModAPI;
@@ -12,8 +12,7 @@ using VRage.Sync;
 
 namespace Catopia.Refined
 {
-    // [MyEntityComponentDescriptor(typeof(MyObjectBuilder_TextPanel), false, "RefinedBlock")]
-    [MyEntityComponentDescriptor(typeof(MyObjectBuilder_FunctionalBlock), false, "RefinedBlock")]
+    [MyEntityComponentDescriptor(typeof(MyObjectBuilder_TextPanel), false, "RefinedBlock")]
 
     public class RefinedBlock : MyGameLogicComponent
     {
@@ -23,8 +22,7 @@ namespace Catopia.Refined
 
         private static Dictionary<long, long> blockRegister = new Dictionary<long, long>();
 
-        //private IMyTextPanel myRefinedBlock;
-        private IMyFunctionalBlock myRefinedBlock;
+        private IMyTextPanel myRefinedBlock;
 
         private Guid LastTimeKey = new Guid("0a1db65e-a169-4cf2-9a83-8903add9ca26");
 
@@ -51,7 +49,7 @@ namespace Catopia.Refined
         public override void Init(MyObjectBuilder_EntityBase objectBuilder)
         {
 
-            myRefinedBlock = Entity as IMyFunctionalBlock; // IMyTextPanel;
+            myRefinedBlock = Entity as IMyTextPanel;
             testButtonState.Value = false;
 
             NeedsUpdate = MyEntityUpdateEnum.BEFORE_NEXT_FRAME;
@@ -80,10 +78,9 @@ namespace Catopia.Refined
             updateCounter = 0;
             testButtonState.ValueChanged += TestButtonState_ValueChanged;
             NeedsUpdate = MyEntityUpdateEnum.EACH_100TH_FRAME;
-
             Log.Debug = true;
             screen0 = new ScreenRefined((IMyTextSurfaceProvider)myRefinedBlock, 0);
-            screen0.ScreenText();
+            screen0.ScreenText("Booting ...");
         }
 
         private void TestButtonState_ValueChanged(MySync<bool, SyncDirection.BothWays> obj)
@@ -99,7 +96,7 @@ namespace Catopia.Refined
         {
             stopWatch.Restart();
             var start = DateTime.Now.Ticks;
-            screen0.AddText($"Tick {updateCounter}");
+            screen0.ScreenText($"Tick {updateCounter}");
 
             if (--updateCounter > 0)
                 return;
@@ -150,8 +147,6 @@ namespace Catopia.Refined
 
 
             Log.Msg($"Elapsed stopWatchticks={stopWatch.ElapsedTicks}");
-
-
         }
 
         private bool CheckDuplicate()
