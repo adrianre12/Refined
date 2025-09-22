@@ -78,9 +78,18 @@ namespace Catopia.Refined
             updateCounter = 0;
             testButtonState.ValueChanged += TestButtonState_ValueChanged;
             NeedsUpdate = MyEntityUpdateEnum.EACH_100TH_FRAME;
+            myRefinedBlock.EnabledChanged += MyRefinedBlock_EnabledChanged;
+
             Log.Debug = true;
+
             screen0 = new ScreenRefined((IMyTextSurfaceProvider)myRefinedBlock, 0);
             screen0.ScreenText("Booting ...");
+        }
+
+        private void MyRefinedBlock_EnabledChanged(IMyTerminalBlock obj)
+        {
+            if (!myRefinedBlock.Enabled)
+                Entity.Storage[LastTimeKey] = "0";
         }
 
         private void TestButtonState_ValueChanged(MySync<bool, SyncDirection.BothWays> obj)
@@ -94,9 +103,10 @@ namespace Catopia.Refined
 
         public override void UpdateAfterSimulation100()
         {
+            if (!myRefinedBlock.Enabled)
+                return;
+
             stopWatch.Restart();
-            var start = DateTime.Now.Ticks;
-            screen0.ScreenText($"Tick {updateCounter}");
 
             if (--updateCounter > 0)
                 return;
@@ -105,6 +115,7 @@ namespace Catopia.Refined
             if (CheckDuplicate())
             {
                 if (Log.Debug) Log.Msg($"Duplicate {myRefinedBlock.CustomName}");
+                screen0.ScreenText($"Duplicate Refined Block");
                 return;
             }
             if (Log.Debug) Log.Msg($"Runstate={runState}");
@@ -126,6 +137,8 @@ namespace Catopia.Refined
                         if (!containers.FindContainerInventories(myRefinedBlock.GetInventory(), myRefinedBlock.CubeGrid))
                         {
                             if (Log.Debug) Log.Msg("Abandon Processing");
+                            screen0.ScreenText($"Abandon Processing");
+
                             runState = RunState.Monitoring;
 
                         }
@@ -179,6 +192,7 @@ namespace Catopia.Refined
             if (id == myRefinedBlock.EntityId)
                 blockRegister.Remove(gridId);
             testButtonState.ValueChanged -= TestButtonState_ValueChanged;
+            myRefinedBlock.EnabledChanged -= MyRefinedBlock_EnabledChanged;
         }
 
         private bool Paused()
@@ -191,8 +205,6 @@ namespace Catopia.Refined
                 long lastS = Convert.ToInt64(lastTimeStr);
                 if (lastS != 0)
                     offlineS = (int)Math.Min(DefaultMaxOffline, nowS - lastS);
-
-                //Log.Msg($"nowS={nowS} lastS={lastS} deltaTimeS={offlineS}");
             }
             else
             {
