@@ -1,8 +1,6 @@
 ﻿using Sandbox.ModAPI;
-using Sandbox.ModAPI.Interfaces;
 using Sandbox.ModAPI.Interfaces.Terminal;
 using System.Collections.Generic;
-using VRage;
 using VRage.Game.ModAPI;
 using VRage.Utils;
 
@@ -66,10 +64,10 @@ namespace Catopia.Refined
             foreach (IMyTerminalControl c in controls)
             {
                 // a quick way to dump all IDs to SE's log
-                string name = MyTexts.GetString((c as IMyTerminalControlTitleTooltip)?.Title.String ?? "N/A");
-                string valueType = (c as ITerminalProperty)?.TypeName ?? "N/A";
-                Log.Msg($"[DEV] terminal property: id='{c.Id}'; type='{c.GetType().Name}'; valueType='{valueType}'; displayName='{name}'");
-
+                /*                string name = MyTexts.GetString((c as IMyTerminalControlTitleTooltip)?.Title.String ?? "N/A");
+                                string valueType = (c as ITerminalProperty)?.TypeName ?? "N/A";
+                                Log.Msg($"[DEV] terminal property: id='{c.Id}'; type='{c.GetType().Name}'; valueType='{valueType}'; displayName='{name}'");
+                */
                 switch (c.Id)
                 {
                     case "OnOff":

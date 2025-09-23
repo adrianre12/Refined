@@ -100,7 +100,7 @@ namespace Catopia.Refined
             Log.Debug = true;
 
             screen0 = new ScreenRefined((IMyTextSurfaceProvider)myRefinedBlock, 0);
-            screen0.ScreenText("Booting ...");
+            screen0.AddText("Booting ...");
         }
 
         private void MyRefinedBlock_EnabledChanged(IMyTerminalBlock obj)
@@ -110,7 +110,7 @@ namespace Catopia.Refined
 
             Entity.Storage[LastTimeKey] = "0";
             screen0.ClearText();
-            screen0.ScreenText("Booting ...");
+            screen0.AddText("Booting ...");
             runState = RunState.Checking;
             updateCounter = 0;
             checkingCounter = DefaultCheckingCounter;
@@ -136,11 +136,20 @@ namespace Catopia.Refined
                 return;
             updateCounter = LongPollPeriod;
 
+            Run();
+
+            screen0.Refresh();
+            Log.Msg($"Elapsed stopWatchticks={stopWatch.ElapsedTicks}");
+
+        }
+
+        public void Run()
+        {
             if (CheckDuplicate())
             {
                 if (Log.Debug) Log.Msg($"Duplicate {myRefinedBlock.CustomName}");
                 screen0.ClearText();
-                screen0.ScreenText($"Duplicate Refined Block");
+                screen0.AddText($"Duplicate Refined Block");
                 return;
             }
 
@@ -155,25 +164,25 @@ namespace Catopia.Refined
                 case RunState.Checking:
                     {
                         if (Log.Debug) Log.Msg("Checking...");
-                        screen0.ScreenText($"Checking...");
+                        screen0.AddText($"Checking...");
                         runState = RunState.Monitoring;
                         containers = new ContainerInfo(screen0, 1);
 
                         if (!containers.FindContainerInventories(myRefinedBlock.GetInventory(), myRefinedBlock.CubeGrid))
                         {
                             if (Log.Debug) Log.Msg("Checking failed");
-                            screen0.ScreenText($"Checking failed. ({checkingCounter})");
+                            screen0.AddText($"Checking failed. ({checkingCounter})");
                             if (--checkingCounter > 0)
                                 runState = RunState.Checking;
                             else
                             {
-                                screen0.ScreenText($"Stopping.");
+                                screen0.AddText($"Stopping.");
                                 runState = RunState.Stopped;
                             }
                             break;
                         }
 
-                        screen0.ScreenText($"Checking success. ({checkingCounter})");
+                        screen0.AddText($"Checking success. ({checkingCounter})");
                         break;
                     }
                 case RunState.Monitoring:
@@ -183,6 +192,7 @@ namespace Catopia.Refined
                             runState = RunState.Detected;
                             updateCounter = ShortPollPeriod;
                         }
+                        screen0.ScreenMode = ScreenRefined.Mode.Run;
                         break;
                     }
                 case RunState.Detected:
@@ -194,11 +204,12 @@ namespace Catopia.Refined
                         if (!containers.FindContainerInventories(myRefinedBlock.GetInventory(), myRefinedBlock.CubeGrid))
                         {
                             if (Log.Debug) Log.Msg("Abandon Processing");
-                            screen0.ScreenText($"Abandon Processing");
+                            screen0.AddText($"Abandon Processing");
 
                             runState = RunState.Checking;
                             break;
                         }
+                        screen0.ScreenMode = ScreenRefined.Mode.Run;
                         runState = RunState.Processing;
                         updateCounter = ShortPollPeriod;
 
@@ -214,14 +225,11 @@ namespace Catopia.Refined
                             runState = RunState.Monitoring;
                             break;
                         }
-
+                        screen0.ScreenMode = ScreenRefined.Mode.Run;
                         updateCounter = ShortPollPeriod;
                         break;
                     }
             }
-
-            screen0.ScreenText();
-            Log.Msg($"Elapsed stopWatchticks={stopWatch.ElapsedTicks}");
         }
 
         private bool CheckDuplicate()

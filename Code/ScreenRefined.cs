@@ -1,21 +1,70 @@
 ﻿using Sandbox.ModAPI;
+using System;
 using System.Collections.Generic;
-using VRage.Game.GUI.TextPanel;
 using VRageMath;
 
 namespace Catopia.Refined
 {
     internal class ScreenRefined : ScreenBase
     {
+        private const int DefaultCallCounter = 2;
         private List<string> screenText = new List<string>();
 
         private readonly Color GreenCRT = new Color(51, 255, 0);
+
+        internal enum Mode
+        {
+            Text,
+            Run
+        }
+        private Mode screenMode = Mode.Text;
+        internal Mode ScreenMode
+        {
+            get
+            {
+                return screenMode;
+            }
+            set
+            {
+                if (screenMode != value)
+                {
+                    screenMode = value;
+                    dirty = true;
+                }
+            }
+        }
+        private bool dirty;
+        private int callCounter;
+
 
         internal ScreenRefined(IMyTextSurfaceProvider surfaceProvider, int index)
         {
             base.Init(surfaceProvider, index);
             DefaultRotationOrScale = 0.85f;
             BackgroundColor = Color.MidnightBlue;
+        }
+
+        internal void Refresh()
+        {
+            Log.Msg($"Refresh dirty={dirty} counter={callCounter}");
+            if (!dirty && --callCounter > 0)
+                return;
+            callCounter = DefaultCallCounter;
+
+            switch (screenMode)
+            {
+                case Mode.Text:
+                    {
+                        ScreenText();
+                        break;
+                    }
+                case Mode.Run:
+                    {
+                        ScreenRun();
+                        break;
+                    }
+            }
+
         }
 
         /*        internal void ScreenDocked(int cashSC, int freeSpaceK, int maxFillK, ControllerBlockBase controller)
@@ -86,22 +135,21 @@ namespace Catopia.Refined
 
 
 
-        internal void ScreenText(string text)
-        {
-            AddText(text);
-            ScreenText();
-        }
 
         internal void AddText(string text)
         {
+            Log.Msg($"AddText {text}");
             if (screenText.Count > 19)
                 screenText.RemoveAt(0);
             screenText.Add(text);
+            screenMode = Mode.Text;
+            dirty = true;
         }
 
         internal void ClearText()
         {
             screenText.Clear();
+            dirty = true;
         }
 
         internal void ScreenText()
@@ -120,19 +168,25 @@ namespace Catopia.Refined
             }
 
             frame.Dispose();
+            dirty = false;
         }
 
-        internal void ScreenSleep()
+        internal void ScreenRun()
         {
-            var frame = GetFrame(Color.Black);
-            var position = new Vector2(viewport.Width / 2, viewport.Height / 2 - 45);
-
-            frame.Add(NewTextSprite("Cash Is King", position, Color.Cyan, 1.5f, TextAlignment.CENTER, DefaultFontId));
-
-            position.Y += 2 * LineSpaceing;
-            frame.Add(NewTextSprite("Press Button", position, Color.Cyan, 1.5f, TextAlignment.CENTER, DefaultFontId));
-
+            var frame = GetFrame();
+            var position = new Vector2(5, 0);
+            //var positionX150 = new Vector2(170, 0);
+            Func<int, Vector2> ph = (x) => { return new Vector2(position.X + x, position.Y); };
+            for (int x = 0; x < viewport.Width; x += 50)
+                frame.Add(NewTextSprite("_", ph(x)));
+            for (int y = 0; y < 20; ++y)
+            {
+                frame.Add(NewTextSprite($"{y}", position));
+                position.Y += LineSpaceing;
+            }
+            dirty = false;
             frame.Dispose();
         }
+
     }
 }

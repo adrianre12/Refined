@@ -24,6 +24,7 @@ namespace Catopia.Refined
 
         private List<IMyRefinery> refineryList = new List<IMyRefinery>();
         private ScreenRefined screen0;
+        private bool refinariesDisabled;
 
         public RefineryInfo(ScreenRefined screen0, int offlineS)
         {
@@ -102,6 +103,9 @@ namespace Catopia.Refined
 
         internal void DisableRefineries()
         {
+            if (refinariesDisabled)
+                return;
+            refinariesDisabled = true;
             foreach (var block in refineryList)
             {
                 block.Enabled = false;
@@ -110,6 +114,7 @@ namespace Catopia.Refined
 
         internal void EnableRefineries()
         {
+            refinariesDisabled = false;
             foreach (var block in refineryList)
             {
                 block.Enabled = true;

@@ -61,8 +61,6 @@ namespace Catopia.Refined
                 return false;
             }
             index = 0;
-            refineryInfo.DisableRefineries(); // stop them pulling ore during processing
-
             return true;
         }
 
@@ -75,7 +73,7 @@ namespace Catopia.Refined
         {
             if (index >= inventories.Count || index >= MaxRefineries)
                 return false;
-
+            refineryInfo.DisableRefineries();
             refineryInfo.Refresh();
 
             Result result = RefineContainer(inventories[index]);
@@ -99,6 +97,7 @@ namespace Catopia.Refined
             return index < inventories.Count;
 
         }
+
 
         internal void RefineEnd()
         {
