@@ -18,7 +18,9 @@ namespace Catopia.Refined
     {
         public const int DefaultMinOffline = 30 * 60; //seconds
         public const int DefaultMaxOffline = 168 * 3600; //seconds
-        public const int PollPeriod = 3; //4.8s
+        public const int LongPollPeriod = 6; //9.6s
+        public const int ShortPollPeriod = 1; //1.6s
+        public const int DefaultCheckingCounter = (int)(5 * 60 / (1.6 * 6)); //5 mins in 100tick the 6 is the longPoll
 
         private static Dictionary<long, long> blockRegister = new Dictionary<long, long>();
 
@@ -26,7 +28,8 @@ namespace Catopia.Refined
 
         private Guid LastTimeKey = new Guid("0a1db65e-a169-4cf2-9a83-8903add9ca26");
 
-        private int updateCounter = PollPeriod;
+        private int updateCounter = 0;
+        private long checkingCounter = DefaultCheckingCounter;
 
         private int offlineS;
         private ContainerInfo containers;
@@ -39,6 +42,8 @@ namespace Catopia.Refined
 
         private enum RunState
         {
+            Stopped,
+            Checking,
             Monitoring,
             Detected,
             Processing
@@ -88,14 +93,21 @@ namespace Catopia.Refined
 
         private void MyRefinedBlock_EnabledChanged(IMyTerminalBlock obj)
         {
-            if (!myRefinedBlock.Enabled)
-                Entity.Storage[LastTimeKey] = "0";
+            if (myRefinedBlock.Enabled)
+                return;
+
+            Entity.Storage[LastTimeKey] = "0";
+            screen0.ClearText();
+            screen0.ScreenText("Booting ...");
+            runState = RunState.Checking;
+            updateCounter = 0;
+            checkingCounter = DefaultCheckingCounter;
         }
 
         private void TestButtonState_ValueChanged(MySync<bool, SyncDirection.BothWays> obj)
         {
-            containers = new ContainerInfo(0);
-            updateCounter = PollPeriod;
+            containers = new ContainerInfo(screen0, 0);
+            updateCounter = ShortPollPeriod;
             containers.ReFillInventories(myRefinedBlock.GetInventory(), myRefinedBlock.CubeGrid);
             long thenS = (DateTime.Now.Ticks / TimeSpan.TicksPerSecond) - 86400;
             Entity.Storage[LastTimeKey] = thenS.ToString();
@@ -110,39 +122,74 @@ namespace Catopia.Refined
 
             if (--updateCounter > 0)
                 return;
-            updateCounter = PollPeriod;
+            updateCounter = LongPollPeriod;
 
             if (CheckDuplicate())
             {
                 if (Log.Debug) Log.Msg($"Duplicate {myRefinedBlock.CustomName}");
+                screen0.ClearText();
                 screen0.ScreenText($"Duplicate Refined Block");
                 return;
             }
+
             if (Log.Debug) Log.Msg($"Runstate={runState}");
 
             switch (runState)
             {
+                case RunState.Stopped:
+                    {
+                        break;
+                    }
+                case RunState.Checking:
+                    {
+                        if (Log.Debug) Log.Msg("Checking...");
+                        screen0.ScreenText($"Checking...");
+                        runState = RunState.Monitoring;
+                        containers = new ContainerInfo(screen0, 1);
+
+                        if (!containers.FindContainerInventories(myRefinedBlock.GetInventory(), myRefinedBlock.CubeGrid))
+                        {
+                            if (Log.Debug) Log.Msg("Checking failed");
+                            screen0.ScreenText($"Checking failed. ({checkingCounter})");
+                            if (--checkingCounter > 0)
+                                runState = RunState.Checking;
+                            else
+                            {
+                                screen0.ScreenText($"Stopping.");
+                                runState = RunState.Stopped;
+                            }
+                            break;
+                        }
+
+                        screen0.ScreenText($"Checking success. ({checkingCounter})");
+                        break;
+                    }
                 case RunState.Monitoring:
                     {
                         if (Paused())
+                        {
                             runState = RunState.Detected;
+                            updateCounter = ShortPollPeriod;
+                        }
                         break;
                     }
                 case RunState.Detected:
                     {
                         if (Log.Debug) Log.Msg("Detected...");
 
-                        containers = new ContainerInfo(offlineS);
+                        containers = new ContainerInfo(screen0, offlineS);
 
                         if (!containers.FindContainerInventories(myRefinedBlock.GetInventory(), myRefinedBlock.CubeGrid))
                         {
                             if (Log.Debug) Log.Msg("Abandon Processing");
                             screen0.ScreenText($"Abandon Processing");
 
-                            runState = RunState.Monitoring;
-
+                            runState = RunState.Checking;
+                            break;
                         }
                         runState = RunState.Processing;
+                        updateCounter = ShortPollPeriod;
+
                         break;
                     }
                 case RunState.Processing:
@@ -153,12 +200,15 @@ namespace Catopia.Refined
                         {
                             containers.RefineEnd();
                             runState = RunState.Monitoring;
+                            break;
                         }
+
+                        updateCounter = ShortPollPeriod;
                         break;
                     }
             }
 
-
+            screen0.ScreenText();
             Log.Msg($"Elapsed stopWatchticks={stopWatch.ElapsedTicks}");
         }
 

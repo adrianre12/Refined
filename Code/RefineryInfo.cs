@@ -12,7 +12,7 @@ namespace Catopia.Refined
     {
         private string keyWord = "Rfnd";
 
-        private ReactorInfo reactorInfo = new ReactorInfo();
+        private ReactorInfo reactorInfo;
 
         internal float TotalPower;
         internal float TotalSpeed;
@@ -23,10 +23,13 @@ namespace Catopia.Refined
         private int offlineS;
 
         private List<IMyRefinery> refineryList = new List<IMyRefinery>();
+        private ScreenRefined screen0;
 
-        public RefineryInfo(int offlineS)
+        public RefineryInfo(ScreenRefined screen0, int offlineS)
         {
             this.offlineS = offlineS;
+            this.screen0 = screen0;
+            reactorInfo = new ReactorInfo(screen0);
         }
 
         internal bool FindRefineriesInfo(IMyCubeGrid cubeGrid)
@@ -71,28 +74,38 @@ namespace Catopia.Refined
                 TotalPower += baseOperationalPowerConsumption / powerEfficiency * (1 + productivity);
 
                 refineryList.Add(block);
-                block.Enabled = false;
             }
             AvgYieldMultiplier = sumYieldMultiplier / refinaryCount;
             if (Log.Debug) Log.Msg($"avgYieldMultiplier={AvgYieldMultiplier} refineriesTotalSpeed={TotalSpeed} refineriesTotalPower={TotalPower}");
 
-            if (TotalPower == 0)
+            if (refinaryCount == 0)
             {
                 if (Log.Debug) Log.Msg("No Refineries found.");
+                screen0.AddText("No Refineries found.");
                 return false;
             }
             if (TotalPower > reactorInfo.MaxPower)
             {
                 if (Log.Debug) Log.Msg("Not enough reactor power.");
+                screen0.AddText("Not enough reactor power.");
                 return false;
             }
             CalcRefinarySeconds();
             if (MaxSeconds < 1)
             {
                 if (Log.Debug) Log.Msg("Not enough refinary process time.");
+                screen0.AddText("Not enough refinary process time.");
                 return false;
             }
             return true;
+        }
+
+        internal void DisableRefineries()
+        {
+            foreach (var block in refineryList)
+            {
+                block.Enabled = false;
+            }
         }
 
         internal void EnableRefineries()
@@ -105,7 +118,7 @@ namespace Catopia.Refined
 
         private void CalcRefinarySeconds()
         {
-            MaxSeconds = Math.Min(reactorInfo.MWseconds, offlineS) / TotalPower * TotalSpeed;
+            MaxSeconds = Math.Min(reactorInfo.MWseconds / TotalPower, offlineS) * TotalSpeed;
             AvailableSeconds = MaxSeconds;
         }
 

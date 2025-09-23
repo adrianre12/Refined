@@ -18,6 +18,7 @@ namespace Catopia.Refined
         private RefiningInfo refiningInfoI = RefiningInfo.Instance;
         private RefineryInfo refineryInfo;
         private int index;
+        private ScreenRefined screen0;
 
         internal enum Result
         {
@@ -27,9 +28,10 @@ namespace Catopia.Refined
             NotEnoughVolume,
             NotEnoughOre
         }
-        internal ContainerInfo(int offlineS)
+        internal ContainerInfo(ScreenRefined screen0, int offlineS)
         {
-            refineryInfo = new RefineryInfo(offlineS);
+            refineryInfo = new RefineryInfo(screen0, offlineS);
+            this.screen0 = screen0;
         }
 
         internal bool FindContainerInventories(IMyInventory refinedInventory, IMyCubeGrid cubeGrid)
@@ -54,10 +56,13 @@ namespace Catopia.Refined
 
             if (inventories.Count == 0)
             {
-                Log.Msg("No container inventorries found");
+                if (Log.Debug) Log.Msg("No container inventories found");
+                screen0.AddText("No containers found");
                 return false;
             }
             index = 0;
+            refineryInfo.DisableRefineries(); // stop them pulling ore during processing
+
             return true;
         }
 

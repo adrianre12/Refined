@@ -21,6 +21,12 @@ namespace Catopia.Refined
 
 
         private List<MyInventory> inventories = new List<MyInventory>();
+        private ScreenRefined screen0;
+
+        public ReactorInfo(ScreenRefined screen0)
+        {
+            this.screen0 = screen0;
+        }
 
         internal bool FindReactorInfo(IMyCubeGrid cubeGrid)
         {
@@ -42,8 +48,10 @@ namespace Catopia.Refined
                 MaxPower += block.MaxOutput;
                 //Log.Msg($"Reactor {block.CustomName} maxOutput={block.MaxOutput} amountU={amountU}");
             }
-
-            return AvaialbleUranium > 0;
+            bool OK = AvaialbleUranium > 0;
+            if (!OK)
+                screen0.AddText("Not enough Reactor Uranium");
+            return OK;
         }
 
         internal void Refresh()
