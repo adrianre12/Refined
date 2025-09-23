@@ -1,10 +1,13 @@
 using Sandbox.Common.ObjectBuilders;
+using Sandbox.Game;
 using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using VRage.Game;
 using VRage.Game.Components;
+using VRage.Game.Entity;
 using VRage.Game.ModAPI.Network;
 using VRage.ModAPI;
 using VRage.ObjectBuilders;
@@ -27,6 +30,8 @@ namespace Catopia.Refined
         private IMyTextPanel myRefinedBlock;
 
         private Guid LastTimeKey = new Guid("0a1db65e-a169-4cf2-9a83-8903add9ca26");
+        private MyDefinitionId SCDefId = new MyDefinitionId(typeof(MyObjectBuilder_PhysicalObject), "SpaceCredit");
+        private MyInventory refinedInventory;
 
         private int updateCounter = 0;
         private long checkingCounter = DefaultCheckingCounter;
@@ -72,9 +77,16 @@ namespace Catopia.Refined
         {
             base.UpdateOnceBeforeFrame();
 
-            TerminalControls.DoOnce(ModContext);
+            refinedInventory = myRefinedBlock.GetInventory() as MyInventory;
+            if (!MyAPIGateway.Utilities.IsDedicated) //client only
+            {
+                TerminalControls.DoOnce(ModContext);
 
-            if (!MyAPIGateway.Session.IsServer)
+                refinedInventory.ContentsChanged += RefinedInventory_ContentsChanged;
+                RefinedInventory_ContentsChanged(refinedInventory);
+            }
+
+            if (!MyAPIGateway.Session.IsServer) // server only
                 return;
 
             var refiningInfoI = RefiningInfo.Instance; // create instance now.
@@ -268,5 +280,25 @@ namespace Catopia.Refined
             return offlineS > DefaultMinOffline;
         }
 
+
+
+        // On Client
+
+        private void RefinedInventory_ContentsChanged(MyInventoryBase cashInventory)
+        {
+            var scAmount = (float)cashInventory.GetItemAmount(SCDefId);
+            try
+            {
+                MyEntitySubpart subpart;
+                if (Entity.TryGetSubpart("SpaceCredit", out subpart)) // subpart does not exist when block is in build stage
+                {
+                    subpart.Render.Visible = scAmount > 0.001;
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Msg(e.ToString());
+            }
+        }
     }
 }
