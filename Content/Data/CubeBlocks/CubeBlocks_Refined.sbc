@@ -40,7 +40,7 @@
 			<BuildTimeSeconds>5</BuildTimeSeconds>
 			<DamageEffectName>Damage_Electrical_Damaged</DamageEffectName>
 			<DamagedSound>ParticleElectrical</DamagedSound>
-			<GuiVisible>false</GuiVisible>
+			<GuiVisible>true</GuiVisible>
 			<ScreenWidth>3</ScreenWidth>
 			<ScreenHeight>5</ScreenHeight>
 			<ScreenAreas>

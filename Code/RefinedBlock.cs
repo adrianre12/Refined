@@ -28,6 +28,7 @@ namespace Catopia.Refined
         private static Dictionary<long, long> blockRegister = new Dictionary<long, long>();
 
         private IMyTextPanel myRefinedBlock;
+        internal string KeyWord = "Rfnd";
 
         private Guid LastTimeKey = new Guid("0a1db65e-a169-4cf2-9a83-8903add9ca26");
         private MyDefinitionId SCDefId = new MyDefinitionId(typeof(MyObjectBuilder_PhysicalObject), "SpaceCredit");
@@ -93,14 +94,16 @@ namespace Catopia.Refined
 
             runState = RunState.Monitoring;
             updateCounter = 0;
-            testButtonState.ValueChanged += TestButtonState_ValueChanged;
-            NeedsUpdate = MyEntityUpdateEnum.EACH_100TH_FRAME;
-            myRefinedBlock.EnabledChanged += MyRefinedBlock_EnabledChanged;
-
-            Log.Debug = true;
 
             screen0 = new ScreenRefined((IMyTextSurfaceProvider)myRefinedBlock, 0);
             screen0.AddText("Booting ...");
+
+            testButtonState.ValueChanged += TestButtonState_ValueChanged;
+            myRefinedBlock.EnabledChanged += MyRefinedBlock_EnabledChanged;
+
+            NeedsUpdate = MyEntityUpdateEnum.EACH_100TH_FRAME;
+
+            Log.Debug = true;
         }
 
         private void MyRefinedBlock_EnabledChanged(IMyTerminalBlock obj)
@@ -110,20 +113,13 @@ namespace Catopia.Refined
 
             Entity.Storage[LastTimeKey] = "0";
             screen0.ClearText();
+            screen0.ClearRun();
             screen0.AddText("Booting ...");
             runState = RunState.Checking;
             updateCounter = 0;
             checkingCounter = DefaultCheckingCounter;
         }
 
-        private void TestButtonState_ValueChanged(MySync<bool, SyncDirection.BothWays> obj)
-        {
-            containers = new ContainerInfo(screen0, 0);
-            updateCounter = ShortPollPeriod;
-            containers.ReFillInventories(myRefinedBlock.GetInventory(), myRefinedBlock.CubeGrid);
-            long thenS = (DateTime.Now.Ticks / TimeSpan.TicksPerSecond) - 86400;
-            Entity.Storage[LastTimeKey] = thenS.ToString();
-        }
 
         public override void UpdateAfterSimulation100()
         {
@@ -166,7 +162,7 @@ namespace Catopia.Refined
                         if (Log.Debug) Log.Msg("Checking...");
                         screen0.AddText($"Checking...");
                         runState = RunState.Monitoring;
-                        containers = new ContainerInfo(screen0, 1);
+                        containers = new ContainerInfo(screen0, 1, KeyWord);
 
                         if (!containers.FindContainerInventories(myRefinedBlock.GetInventory(), myRefinedBlock.CubeGrid))
                         {
@@ -183,6 +179,7 @@ namespace Catopia.Refined
                         }
 
                         screen0.AddText($"Checking success. ({checkingCounter})");
+                        updateCounter = ShortPollPeriod;
                         break;
                     }
                 case RunState.Monitoring:
@@ -191,15 +188,19 @@ namespace Catopia.Refined
                         {
                             runState = RunState.Detected;
                             updateCounter = ShortPollPeriod;
+                            screen0.RunInfo.LastOfflineS = offlineS;
                         }
-                        screen0.ScreenMode = ScreenRefined.Mode.Run;
+                        if (containers == null) //Only happens at first start and forces a check.
+                            runState = RunState.Checking;
+                        else
+                            screen0.ScreenMode = ScreenRefined.Mode.Run;
                         break;
                     }
                 case RunState.Detected:
                     {
                         if (Log.Debug) Log.Msg("Detected...");
 
-                        containers = new ContainerInfo(screen0, offlineS);
+                        containers = new ContainerInfo(screen0, offlineS, KeyWord);
 
                         if (!containers.FindContainerInventories(myRefinedBlock.GetInventory(), myRefinedBlock.CubeGrid))
                         {
@@ -226,6 +227,7 @@ namespace Catopia.Refined
                             break;
                         }
                         screen0.ScreenMode = ScreenRefined.Mode.Run;
+                        screen0.Dirty = true;
                         updateCounter = ShortPollPeriod;
                         break;
                     }
@@ -246,9 +248,13 @@ namespace Catopia.Refined
             return true;
         }
 
-        internal void TestButtonToggle()
+        private void TestButtonState_ValueChanged(MySync<bool, SyncDirection.BothWays> obj)
         {
-            testButtonState.Value = !testButtonState.Value;
+            containers = new ContainerInfo(screen0, 0, KeyWord);
+            updateCounter = ShortPollPeriod;
+            containers.ReFillInventories(myRefinedBlock.GetInventory(), myRefinedBlock.CubeGrid);
+            long thenS = (DateTime.Now.Ticks / TimeSpan.TicksPerSecond) - 86400;
+            Entity.Storage[LastTimeKey] = thenS.ToString();
         }
 
         public override void Close()
@@ -291,6 +297,12 @@ namespace Catopia.Refined
 
 
         // On Client
+
+
+        internal void TestButtonToggle()
+        {
+            testButtonState.Value = !testButtonState.Value;
+        }
 
         private void RefinedInventory_ContentsChanged(MyInventoryBase cashInventory)
         {

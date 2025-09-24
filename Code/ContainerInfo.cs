@@ -10,7 +10,7 @@ namespace Catopia.Refined
 {
     internal class ContainerInfo
     {
-        internal string KeyWord = "Rfnd";
+        private string keyWord;
         internal int MaxRefineries = 10;
 
         private List<IMyInventory> inventories = new List<IMyInventory>();
@@ -28,10 +28,11 @@ namespace Catopia.Refined
             NotEnoughVolume,
             NotEnoughOre
         }
-        internal ContainerInfo(ScreenRefined screen0, int offlineS)
+        internal ContainerInfo(ScreenRefined screen0, int offlineS, string keyWord)
         {
-            refineryInfo = new RefineryInfo(screen0, offlineS);
             this.screen0 = screen0;
+            this.keyWord = keyWord;
+            refineryInfo = new RefineryInfo(screen0, offlineS, keyWord);
         }
 
         internal bool FindContainerInventories(IMyInventory refinedInventory, IMyCubeGrid cubeGrid)
@@ -43,7 +44,7 @@ namespace Catopia.Refined
 
             foreach (var container in cubeGrid.GetFatBlocks<IMyCargoContainer>())
             {
-                if (!container.CustomName.Contains(KeyWord) || !container.IsFunctional)
+                if (!container.CustomName.Contains(keyWord) || !container.IsFunctional)
                     continue;
                 var inventory = container.GetInventory();
                 if (!refinedInventory.IsConnectedTo(inventory))
@@ -57,9 +58,14 @@ namespace Catopia.Refined
             if (inventories.Count == 0)
             {
                 if (Log.Debug) Log.Msg("No container inventories found");
-                screen0.AddText("No containers found");
+                screen0.AddText("No containers found.");
+                screen0.AddText($"Have you added Keyword {keyWord}");
+
                 return false;
             }
+            screen0.RunInfo.NumContainers = inventories.Count;
+            screen0.Dirty = true;
+
             index = 0;
             return true;
         }
@@ -77,7 +83,7 @@ namespace Catopia.Refined
             refineryInfo.Refresh();
 
             Result result = RefineContainer(inventories[index]);
-            refineryInfo.ConsumeRefinarySeconds();
+            refineryInfo.ConsumeRefinaryUnits();
             if (Log.Debug) Log.Msg($"RefineContainer result={result}");
 
             switch (result)
@@ -108,7 +114,7 @@ namespace Catopia.Refined
         {
             foreach (var oreItemId in refiningInfoI.OrderedOreList)
             {
-                if (refineryInfo.AvailableSeconds == 0)
+                if (refineryInfo.RemainingRefiningUnits == 0)
                     return Result.NoTime;
 
                 OreToIngotInfo info = null;
@@ -178,14 +184,14 @@ namespace Catopia.Refined
         private int ConsumeRefinaryTime(float productionTime, int bpRuns)
         {
             var neededTime = productionTime * bpRuns;
-            if (neededTime <= refineryInfo.AvailableSeconds)
+            if (neededTime <= refineryInfo.RemainingRefiningUnits)
             {
-                refineryInfo.AvailableSeconds -= neededTime;
+                refineryInfo.RemainingRefiningUnits -= neededTime;
                 return bpRuns;
             }
 
-            bpRuns = (int)(refineryInfo.AvailableSeconds / productionTime);
-            refineryInfo.AvailableSeconds = 0;
+            bpRuns = (int)(refineryInfo.RemainingRefiningUnits / productionTime);
+            refineryInfo.RemainingRefiningUnits = 0;
             return bpRuns;
         }
 
@@ -195,7 +201,7 @@ namespace Catopia.Refined
 
             foreach (var container in cubeGrid.GetFatBlocks<IMyCargoContainer>())
             {
-                if (!container.CustomName.Contains(KeyWord) || !container.IsFunctional)
+                if (!container.CustomName.Contains(keyWord) || !container.IsFunctional)
                     continue;
                 var inventory = container.GetInventory();
                 if (!refinedInventory.IsConnectedTo(inventory))

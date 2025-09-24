@@ -10,7 +10,7 @@ namespace Catopia.Refined
 {
     internal class RefineryInfo
     {
-        private string keyWord = "Rfnd";
+        private string keyWord;
 
         private ReactorInfo reactorInfo;
 
@@ -18,18 +18,19 @@ namespace Catopia.Refined
         internal float TotalSpeed;
         internal float AvgYieldMultiplier;
 
-        internal float MaxSeconds;
-        internal float AvailableSeconds;
+        internal float MaxRefiningUnits;
+        internal float RemainingRefiningUnits;
         private int offlineS;
 
         private List<IMyRefinery> refineryList = new List<IMyRefinery>();
         private ScreenRefined screen0;
         private bool refinariesDisabled;
 
-        public RefineryInfo(ScreenRefined screen0, int offlineS)
+        public RefineryInfo(ScreenRefined screen0, int offlineS, string keyWord)
         {
             this.offlineS = offlineS;
             this.screen0 = screen0;
+            this.keyWord = keyWord;
             reactorInfo = new ReactorInfo(screen0);
         }
 
@@ -59,8 +60,6 @@ namespace Catopia.Refined
             float sumYieldMultiplier = 0;
             foreach (var block in cubeGrid.GetFatBlocks<IMyRefinery>())
             {
-                //Log($"FatBlock={block.BlockDefinition.TypeId} {block.BlockDefinition.SubtypeName} {block.DetailedInfo} Enabled={block.Enabled} IsFunctional={block.IsFunctional}");
-
                 if (!block.CustomName.Contains(keyWord) || !block.Enabled || !block.IsFunctional)
                     continue;
 
@@ -83,6 +82,7 @@ namespace Catopia.Refined
             {
                 if (Log.Debug) Log.Msg("No Refineries found.");
                 screen0.AddText("No Refineries found.");
+                screen0.AddText($"Have you added Keyword {keyWord}");
                 return false;
             }
             if (TotalPower > reactorInfo.MaxPower)
@@ -91,13 +91,20 @@ namespace Catopia.Refined
                 screen0.AddText("Not enough reactor power.");
                 return false;
             }
-            CalcRefinarySeconds();
-            if (MaxSeconds < 1)
+            CalcRefiningUnits();
+            if (MaxRefiningUnits < 1)
             {
                 if (Log.Debug) Log.Msg("Not enough refinary process time.");
                 screen0.AddText("Not enough refinary process time.");
                 return false;
             }
+
+            screen0.RunInfo.NumRefineries = refineryList.Count;
+            screen0.RunInfo.TotalPower = TotalPower;
+            screen0.RunInfo.TotalSpeed = TotalSpeed;
+            screen0.RunInfo.AvgYieldMultiplier = AvgYieldMultiplier;
+            screen0.Dirty = true;
+
             return true;
         }
 
@@ -121,24 +128,26 @@ namespace Catopia.Refined
             }
         }
 
-        private void CalcRefinarySeconds()
+        private void CalcRefiningUnits()
         {
-            MaxSeconds = Math.Min(reactorInfo.MWseconds / TotalPower, offlineS) * TotalSpeed;
-            AvailableSeconds = MaxSeconds;
+            MaxRefiningUnits = Math.Min(reactorInfo.MWseconds / TotalPower, offlineS) * TotalSpeed;
+            RemainingRefiningUnits = MaxRefiningUnits;
+            screen0.RunInfo.MaxRefiningUnits = MaxRefiningUnits;
+            screen0.RunInfo.RemainingRefiningUnits = RemainingRefiningUnits;
+            screen0.Dirty |= true;
+        }
+
+        internal void ConsumeRefinaryUnits()
+        {
+            reactorInfo.ConsumeUranium((MaxRefiningUnits - RemainingRefiningUnits) * TotalPower / TotalSpeed);
         }
 
         internal void Refresh()
         {
             reactorInfo.Refresh();
-            CalcRefinarySeconds();
-            if (Log.Debug) Log.Msg($"MaxSeconds={MaxSeconds} AvialableSeconds{AvailableSeconds}");
+            CalcRefiningUnits();
+            if (Log.Debug) Log.Msg($"MaxRefiningUnits={MaxRefiningUnits} RemainingRefiningUnits={RemainingRefiningUnits}");
 
         }
-
-        internal void ConsumeRefinarySeconds()
-        {
-            reactorInfo.ConsumeUranium((MaxSeconds - AvailableSeconds) * TotalPower / TotalSpeed);
-        }
-
     }
 }
