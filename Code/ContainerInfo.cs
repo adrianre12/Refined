@@ -11,7 +11,8 @@ namespace Catopia.Refined
     internal class ContainerInfo
     {
         private string keyWord;
-        internal int MaxRefineries = 10;
+
+        private CommonSettings settings = CommonSettings.Instance;
 
         private List<IMyInventory> inventories = new List<IMyInventory>();
 
@@ -19,6 +20,20 @@ namespace Catopia.Refined
         private RefineryInfo refineryInfo;
         private int index;
         private ScreenRefined screen0;
+        internal int CreditSecondsMax;
+        private int creditSecondsAvailable;
+        internal int CreditSecondsAvailable
+        {
+            get
+            {
+                return creditSecondsAvailable;
+            }
+            set
+            {
+                creditSecondsAvailable = value;
+                CreditSecondsMax = value;
+            }
+        }
 
         internal enum Result
         {
@@ -77,13 +92,13 @@ namespace Catopia.Refined
 
         internal bool RefineNext()
         {
-            if (index >= inventories.Count || index >= MaxRefineries)
+            if (index >= inventories.Count || index >= settings.MaxRefineries)
                 return false;
             refineryInfo.DisableRefineries();
             refineryInfo.Refresh();
 
             Result result = RefineContainer(inventories[index]);
-            refineryInfo.ConsumeRefinaryUnits();
+            refineryInfo.ConsumeRefinaryTime();
             if (Log.Debug) Log.Msg($"RefineContainer result={result}");
 
             switch (result)
@@ -114,7 +129,7 @@ namespace Catopia.Refined
         {
             foreach (var oreItemId in refiningInfoI.OrderedOreList)
             {
-                if (refineryInfo.RemainingRefiningUnits == 0)
+                if (refineryInfo.RemainingRefiningTime == 0)
                     return Result.NoTime;
 
                 OreToIngotInfo info = null;
@@ -166,7 +181,8 @@ namespace Catopia.Refined
             }
             if (Log.Debug) Log.Msg($"After volume check bpRuns={bpRuns}");
             //power check.
-            bpRuns = ConsumeRefinaryTime(info.ProductionTime, bpRuns);
+            float priceYieldMultiplier;
+            bpRuns = ConsumeRefinaryTime(info.ProductionTime, bpRuns, out priceYieldMultiplier);
             if (bpRuns == 0)
                 return Result.NoTime;
             if (Log.Debug) Log.Msg($"After time check bpRuns={bpRuns}");
@@ -175,23 +191,44 @@ namespace Catopia.Refined
 
             foreach (var ingot in info.Ingots)
             {
-                MyFixedPoint ingotAmount = ingot.Amount * (refineryInfo.AvgYieldMultiplier * bpRuns);
+                MyFixedPoint ingotAmount = ingot.Amount * (refineryInfo.AvgYieldMultiplier * bpRuns * priceYieldMultiplier);
                 inventory.AddItems(ingotAmount, (MyObjectBuilder_PhysicalObject)MyObjectBuilderSerializer.CreateNewObject(ingot.ItemId));
             }
             return Result.Success;
         }
 
-        private int ConsumeRefinaryTime(float productionTime, int bpRuns)
+        private int ConsumeRefinaryTime(float productionTime, int bpRuns, out float priceYieldMultiplier)
         {
-            var neededTime = productionTime * bpRuns;
-            if (neededTime <= refineryInfo.RemainingRefiningUnits)
+            int neededTime = (int)(productionTime * bpRuns / refineryInfo.TotalSpeed);
+
+            if (neededTime <= refineryInfo.RemainingRefiningTime)
             {
-                refineryInfo.RemainingRefiningUnits -= neededTime;
-                return bpRuns;
+                refineryInfo.RemainingRefiningTime -= neededTime;
+            }
+            else
+            {
+
+                bpRuns = (int)(refineryInfo.RemainingRefiningTime / productionTime);
+                refineryInfo.RemainingRefiningTime = 0;
+                neededTime = (int)(productionTime * bpRuns / refineryInfo.TotalSpeed);
             }
 
-            bpRuns = (int)(refineryInfo.RemainingRefiningUnits / productionTime);
-            refineryInfo.RemainingRefiningUnits = 0;
+            if (creditSecondsAvailable <= 0)
+            { // run out of credit
+                priceYieldMultiplier = settings.PriceYieldMultiplier;
+            }
+            else if (neededTime <= creditSecondsAvailable)
+            {
+                priceYieldMultiplier = 1;
+                creditSecondsAvailable -= neededTime;
+            }
+            else
+            {
+                //lerp
+                priceYieldMultiplier = settings.PriceYieldMultiplier + creditSecondsAvailable / neededTime * (1 - settings.PriceYieldMultiplier);
+                creditSecondsAvailable = 0;
+            }
+
             return bpRuns;
         }
 

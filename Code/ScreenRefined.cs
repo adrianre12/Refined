@@ -182,12 +182,14 @@ namespace Catopia.Refined
             internal float TotalPower;
             internal float TotalSpeed;
             internal float AvgYieldMultiplier;
-            internal float MaxRefiningUnits;
-            internal float RemainingRefiningUnits;
+            internal float MaxRefiningTime;
+            internal float RemainingRefiningTime;
             internal int NumContainers;
             internal int PricePerHour;
             internal int Percent;
             internal int LastOfflineS;
+            internal float SCamount;
+            internal int CreditSeconds;
         }
 
     }

@@ -18,8 +18,8 @@ namespace Catopia.Refined
         internal float TotalSpeed;
         internal float AvgYieldMultiplier;
 
-        internal float MaxRefiningUnits;
-        internal float RemainingRefiningUnits;
+        internal float MaxRefiningTime;
+        internal float RemainingRefiningTime;
         private int offlineS;
 
         private List<IMyRefinery> refineryList = new List<IMyRefinery>();
@@ -91,8 +91,8 @@ namespace Catopia.Refined
                 screen0.AddText("Not enough reactor power.");
                 return false;
             }
-            CalcRefiningUnits();
-            if (MaxRefiningUnits < 1)
+            CalcRefiningTime();
+            if (MaxRefiningTime < 1)
             {
                 if (Log.Debug) Log.Msg("Not enough refinary process time.");
                 screen0.AddText("Not enough refinary process time.");
@@ -128,25 +128,25 @@ namespace Catopia.Refined
             }
         }
 
-        private void CalcRefiningUnits()
+        private void CalcRefiningTime()
         {
-            MaxRefiningUnits = Math.Min(reactorInfo.MWseconds / TotalPower, offlineS) * TotalSpeed;
-            RemainingRefiningUnits = MaxRefiningUnits;
-            screen0.RunInfo.MaxRefiningUnits = MaxRefiningUnits;
-            screen0.RunInfo.RemainingRefiningUnits = RemainingRefiningUnits;
+            MaxRefiningTime = Math.Min(reactorInfo.MWseconds / TotalPower, offlineS);
+            RemainingRefiningTime = MaxRefiningTime;
+            screen0.RunInfo.MaxRefiningTime = MaxRefiningTime;
+            screen0.RunInfo.RemainingRefiningTime = RemainingRefiningTime;
             screen0.Dirty |= true;
         }
 
-        internal void ConsumeRefinaryUnits()
+        internal void ConsumeRefinaryTime()
         {
-            reactorInfo.ConsumeUranium((MaxRefiningUnits - RemainingRefiningUnits) * TotalPower / TotalSpeed);
+            reactorInfo.ConsumeUranium((MaxRefiningTime - RemainingRefiningTime) * TotalPower);
         }
 
         internal void Refresh()
         {
             reactorInfo.Refresh();
-            CalcRefiningUnits();
-            if (Log.Debug) Log.Msg($"MaxRefiningUnits={MaxRefiningUnits} RemainingRefiningUnits={RemainingRefiningUnits}");
+            CalcRefiningTime();
+            if (Log.Debug) Log.Msg($"MaxRefiningUnits={MaxRefiningTime} RemainingRefiningUnits={RemainingRefiningTime}");
 
         }
     }

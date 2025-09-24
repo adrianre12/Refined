@@ -57,6 +57,8 @@ namespace Catopia.Refined
 
         private RunState runState;
 
+        private CommonSettings settings = CommonSettings.Instance;
+
         public override void Init(MyObjectBuilder_EntityBase objectBuilder)
         {
 
@@ -219,7 +221,7 @@ namespace Catopia.Refined
                 case RunState.Processing:
                     {
                         if (Log.Debug) Log.Msg("Processing...");
-
+                        containers.CreditSecondsAvailable = CalcCreditSeconds();
                         if (!containers.RefineNext())
                         {
                             containers.RefineEnd();
@@ -246,6 +248,15 @@ namespace Catopia.Refined
             if (id == myRefinedBlock.EntityId)
                 return false;
             return true;
+        }
+
+        private int CalcCreditSeconds()
+        {
+            var scAmount = (float)refinedInventory.GetItemAmount(SCDefId);
+            int creditS = (int)(scAmount * 3600 / settings.PricePerHour); ?
+            screen0.RunInfo.SCamount = scAmount;
+            screen0.RunInfo.CreditSeconds = creditS;
+            return creditS;
         }
 
         private void TestButtonState_ValueChanged(MySync<bool, SyncDirection.BothWays> obj)
@@ -304,9 +315,9 @@ namespace Catopia.Refined
             testButtonState.Value = !testButtonState.Value;
         }
 
-        private void RefinedInventory_ContentsChanged(MyInventoryBase cashInventory)
+        private void RefinedInventory_ContentsChanged(MyInventoryBase refinedInventory)
         {
-            var scAmount = (float)cashInventory.GetItemAmount(SCDefId);
+            var scAmount = (float)refinedInventory.GetItemAmount(SCDefId);
             try
             {
                 MyEntitySubpart subpart;
