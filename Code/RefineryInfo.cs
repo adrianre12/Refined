@@ -18,9 +18,9 @@ namespace Catopia.Refined
         internal float TotalSpeed;
         internal float AvgYieldMultiplier;
 
-        internal float MaxRefiningTime;
-        internal float RemainingRefiningTime;
-        private int offlineS;
+        internal int MaxRefiningTime;
+        internal int RemainingRefiningTime;
+        private int remainingOfflineTime;
 
         private List<IMyRefinery> refineryList = new List<IMyRefinery>();
         private ScreenRefined screen0;
@@ -28,7 +28,7 @@ namespace Catopia.Refined
 
         public RefineryInfo(ScreenRefined screen0, int offlineS, string keyWord)
         {
-            this.offlineS = offlineS;
+            this.remainingOfflineTime = offlineS;
             this.screen0 = screen0;
             this.keyWord = keyWord;
             reactorInfo = new ReactorInfo(screen0);
@@ -91,7 +91,7 @@ namespace Catopia.Refined
                 screen0.AddText("Not enough reactor power.");
                 return false;
             }
-            CalcRefiningTime();
+            CalcMaxRefiningTime();
             if (MaxRefiningTime < 1)
             {
                 if (Log.Debug) Log.Msg("Not enough refinary process time.");
@@ -128,9 +128,9 @@ namespace Catopia.Refined
             }
         }
 
-        private void CalcRefiningTime()
+        private void CalcMaxRefiningTime()
         {
-            MaxRefiningTime = Math.Min(reactorInfo.MWseconds / TotalPower, offlineS);
+            MaxRefiningTime = (int)Math.Min(reactorInfo.MWseconds / TotalPower, remainingOfflineTime);
             RemainingRefiningTime = MaxRefiningTime;
             screen0.RunInfo.MaxRefiningTime = MaxRefiningTime;
             screen0.RunInfo.RemainingRefiningTime = RemainingRefiningTime;
@@ -139,13 +139,16 @@ namespace Catopia.Refined
 
         internal void ConsumeRefinaryTime()
         {
-            reactorInfo.ConsumeUranium((MaxRefiningTime - RemainingRefiningTime) * TotalPower);
+            var elapsedTime = MaxRefiningTime - RemainingRefiningTime;
+            remainingOfflineTime -= elapsedTime;
+            screen0.RunInfo.TotalRefiningTime += elapsedTime;
+            reactorInfo.ConsumeUranium(elapsedTime * TotalPower);
         }
 
         internal void Refresh()
         {
             reactorInfo.Refresh();
-            CalcRefiningTime();
+            CalcMaxRefiningTime();
             if (Log.Debug) Log.Msg($"MaxRefiningUnits={MaxRefiningTime} RemainingRefiningUnits={RemainingRefiningTime}");
 
         }

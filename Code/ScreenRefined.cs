@@ -121,7 +121,7 @@ namespace Catopia.Refined
 
             frame.Add(NewTextSprite("   Uranium:", position));
             frame.Add(NewTextSprite($"{RunInfo.AvailableUranium}", position + positionTab1, Color.Green));
-            position.Y += LineSpaceing * 1.1f;
+            position.Y += LineSpaceing * 1.2f;
 
             frame.Add(NewTextSprite("Refineries:", position));
             frame.Add(NewTextSprite($"{RunInfo.NumRefineries}", position + positionTab1, Color.Green));
@@ -137,19 +137,19 @@ namespace Catopia.Refined
 
             frame.Add(NewTextSprite("   Yield(Avg):", position));
             frame.Add(NewTextSprite($"x{RunInfo.AvgYieldMultiplier}", position + positionTab1, Color.Green));
-            position.Y += LineSpaceing * 1.1f;
+            position.Y += LineSpaceing * 1.2f;
 
             frame.Add(NewTextSprite("Containers:", position));
             frame.Add(NewTextSprite($"{RunInfo.NumContainers}", position + positionTab1, Color.Green));
-            position.Y += LineSpaceing * 1.1f;
+            position.Y += LineSpaceing * 1.2f;
 
-            frame.Add(NewTextSprite("Price:", position));
-            frame.Add(NewTextSprite($"{RunInfo.PricePerHour} SC/hr", position + positionTab1, Color.Green));
+            frame.Add(NewTextSprite("Price SC/hr:", position));
+            frame.Add(NewTextSprite($"{RunInfo.PricePerHour} SC", position + positionTab1, Color.Green));
             position.Y += LineSpaceing * 1f;
 
-            frame.Add(NewTextSprite(" Alt. Yield:", position));
-            frame.Add(NewTextSprite($"{RunInfo.Percent}%", position + positionTab1, Color.Green));
-            position.Y += LineSpaceing * 1.1f;
+            frame.Add(NewTextSprite("   Or Ingots:", position));
+            frame.Add(NewTextSprite($"{RunInfo.Percent:0.#}%", position + positionTab1, Color.Green));
+            position.Y += LineSpaceing * 1.2f;
 
             if (RunInfo.LastOfflineS != 0)
             {
@@ -157,7 +157,38 @@ namespace Catopia.Refined
                 frame.Add(NewTextSprite(TimeSpan.FromSeconds(RunInfo.LastOfflineS).ToString(@"d\d\ hh\:mm"), position + positionTab1, Color.Green));
                 position.Y += LineSpaceing;
 
+                if (RunInfo.OresProcessed == 0)
+                {
+                    frame.Add(NewTextSprite("Refining:", position));
+                    frame.Add(NewTextSprite("No Ore.", position + positionTab1, Color.Yellow));
+                    position.Y += LineSpaceing;
+                }
+                else
+                {
+                    frame.Add(NewTextSprite("Refining:", position));
+                    frame.Add(NewTextSprite(TimeSpan.FromSeconds(RunInfo.TotalRefiningTime).ToString(@"d\d\ hh\:mm"), position + positionTab1, Color.Green));
+                    position.Y += LineSpaceing;
 
+                    frame.Add(NewTextSprite("   Ores:", position));
+                    frame.Add(NewTextSprite($"{RunInfo.OresProcessed}", position + positionTab1, Color.Green));
+                    position.Y += LineSpaceing;
+
+                    frame.Add(NewTextSprite("   Paid for:", position));
+                    frame.Add(NewTextSprite(TimeSpan.FromSeconds(RunInfo.CreditSecondsUsed).ToString(@"d\d\ hh\:mm"), position + positionTab1, Color.Green));
+                    position.Y += LineSpaceing;
+
+                    frame.Add(NewTextSprite("   Cost:", position));
+                    frame.Add(NewTextSprite($"{RunInfo.SCpaid} SC", position + positionTab1, Color.Green));
+                    position.Y += LineSpaceing;
+
+                    frame.Add(NewTextSprite("Ingots taken:", position));
+                    frame.Add(NewTextSprite($"{RunInfo.AvgPercentCharge:0.#}%", position + positionTab1, Color.Green));
+                    position.Y += LineSpaceing * 1.2f;
+
+                    frame.Add(NewTextSprite("Uranium Used:", position));
+                    frame.Add(NewTextSprite($"{RunInfo.UraniumUsed:0.##}", position + positionTab1, Color.Green));
+                    position.Y += LineSpaceing;
+                }
             }
 
 
@@ -173,7 +204,7 @@ namespace Catopia.Refined
         }
 
         internal ScreenRunInfo RunInfo = new ScreenRunInfo();
-        internal struct ScreenRunInfo
+        internal class ScreenRunInfo
         {
             internal int NumReactors;
             internal float ReactorPower;
@@ -186,10 +217,22 @@ namespace Catopia.Refined
             internal float RemainingRefiningTime;
             internal int NumContainers;
             internal int PricePerHour;
-            internal int Percent;
+            internal float Percent;
             internal int LastOfflineS;
-            internal float SCamount;
-            internal int CreditSeconds;
+            internal int SCpaid;
+            internal int CreditSecondsUsed;
+            internal float TotalRefiningTime;
+            internal float UraniumUsed;
+            internal int OresProcessed;
+            internal float AvgPercentCharge;
+
+            internal ScreenRunInfo()
+            {
+                var settings = CommonSettings.Instance;
+
+                PricePerHour = settings.PricePerHour;
+                Percent = (float)(0.1 * Math.Round(1000 * (1 - settings.PriceYieldMultiplier)));
+            }
         }
 
     }

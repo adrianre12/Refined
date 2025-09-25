@@ -19,8 +19,6 @@ namespace Catopia.Refined
 
     public class RefinedBlock : MyGameLogicComponent
     {
-        public const int DefaultMinOffline = 30 * 60; //seconds
-        public const int DefaultMaxOffline = 168 * 3600; //seconds
         public const int LongPollPeriod = 6; //9.6s
         public const int ShortPollPeriod = 1; //1.6s
         public const int DefaultCheckingCounter = (int)(5 * 60 / (1.6 * 6)); //5 mins in 100tick the 6 is the longPoll
@@ -112,11 +110,10 @@ namespace Catopia.Refined
         {
             if (myRefinedBlock.Enabled)
                 return;
-
             Entity.Storage[LastTimeKey] = "0";
             screen0.ClearText();
             screen0.ClearRun();
-            screen0.AddText("Booting ...");
+            screen0.AddText("Restart ...");
             runState = RunState.Checking;
             updateCounter = 0;
             checkingCounter = DefaultCheckingCounter;
@@ -164,7 +161,7 @@ namespace Catopia.Refined
                         if (Log.Debug) Log.Msg("Checking...");
                         screen0.AddText($"Checking...");
                         runState = RunState.Monitoring;
-                        containers = new ContainerInfo(screen0, 1, KeyWord);
+                        containers = new ContainerInfo(screen0, 1, KeyWord, refinedInventory);
 
                         if (!containers.FindContainerInventories(myRefinedBlock.GetInventory(), myRefinedBlock.CubeGrid))
                         {
@@ -190,19 +187,20 @@ namespace Catopia.Refined
                         {
                             runState = RunState.Detected;
                             updateCounter = ShortPollPeriod;
-                            screen0.RunInfo.LastOfflineS = offlineS;
+                            screen0.ScreenMode = ScreenRefined.Mode.Run;
+                            break;
                         }
+
                         if (containers == null) //Only happens at first start and forces a check.
                             runState = RunState.Checking;
-                        else
-                            screen0.ScreenMode = ScreenRefined.Mode.Run;
                         break;
                     }
                 case RunState.Detected:
                     {
                         if (Log.Debug) Log.Msg("Detected...");
-
-                        containers = new ContainerInfo(screen0, offlineS, KeyWord);
+                        screen0.ClearRun();
+                        screen0.RunInfo.LastOfflineS = offlineS;
+                        containers = new ContainerInfo(screen0, offlineS, KeyWord, refinedInventory);
 
                         if (!containers.FindContainerInventories(myRefinedBlock.GetInventory(), myRefinedBlock.CubeGrid))
                         {
@@ -221,7 +219,6 @@ namespace Catopia.Refined
                 case RunState.Processing:
                     {
                         if (Log.Debug) Log.Msg("Processing...");
-                        containers.CreditSecondsAvailable = CalcCreditSeconds();
                         if (!containers.RefineNext())
                         {
                             containers.RefineEnd();
@@ -250,18 +247,11 @@ namespace Catopia.Refined
             return true;
         }
 
-        private int CalcCreditSeconds()
-        {
-            var scAmount = (float)refinedInventory.GetItemAmount(SCDefId);
-            int creditS = (int)(scAmount * 3600 / settings.PricePerHour); ?
-            screen0.RunInfo.SCamount = scAmount;
-            screen0.RunInfo.CreditSeconds = creditS;
-            return creditS;
-        }
+
 
         private void TestButtonState_ValueChanged(MySync<bool, SyncDirection.BothWays> obj)
         {
-            containers = new ContainerInfo(screen0, 0, KeyWord);
+            containers = new ContainerInfo(screen0, 0, KeyWord, refinedInventory);
             updateCounter = ShortPollPeriod;
             containers.ReFillInventories(myRefinedBlock.GetInventory(), myRefinedBlock.CubeGrid);
             long thenS = (DateTime.Now.Ticks / TimeSpan.TicksPerSecond) - 86400;
@@ -291,7 +281,7 @@ namespace Catopia.Refined
             {
                 long lastS = Convert.ToInt64(lastTimeStr);
                 if (lastS != 0)
-                    offlineS = (int)Math.Min(DefaultMaxOffline, nowS - lastS);
+                    offlineS = (int)Math.Min(settings.MaxOfflineHours * 3600, nowS - lastS);
             }
             else
             {
@@ -302,7 +292,7 @@ namespace Catopia.Refined
 
             if (Log.Debug) Log.Msg($"deltaTimeS = {offlineS}");
 
-            return offlineS > DefaultMinOffline;
+            return offlineS > settings.MinOfflineMins * 60;
         }
 
 

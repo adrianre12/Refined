@@ -3,24 +3,18 @@ using System;
 
 namespace Catopia.Refined
 {
-    internal class CommonSettings
+    public class CommonSettings
     {
         const string configFilename = "Config-Refined.xml";
 
 
         private static CommonSettings instance;
 
-        private int pricePerHour = 1000;
-        public int PricePerHour { get { return pricePerHour; } private set { pricePerHour = value; } }
-
-        private float priceYieldMultiplier = 0.95f;
-        public float PriceYieldMultiplier { get { return priceYieldMultiplier; } private set { priceYieldMultiplier = value; } }
-
-        private int maxOfflineHours = 120;
-        public int MaxOfflineHours { get { return maxOfflineHours; } private set { maxOfflineHours = value; } }
-
-        private int maxRefineries = 10;
-        public int MaxRefineries { get { return maxRefineries; } private set { maxRefineries = value; } }
+        public int MinOfflineMins = 15;
+        public int MaxOfflineHours = 120;
+        public int PricePerHour = 1000;
+        public float PriceYieldMultiplier = 0.95f;
+        public int MaxRefineries = 10;
 
 
         public CommonSettings() { }
@@ -54,7 +48,7 @@ namespace Catopia.Refined
                 catch (Exception exc)
                 {
                     Log.Msg(exc.ToString());
-                    Log.Msg($"ERROR: Could Not Load Settings From {configFilename}. Using Empty Configuration.");
+                    Log.Msg($"ERROR: Could Not Load Settings From {configFilename}. Using Default Configuration.");
                     return new CommonSettings();
                 }
 

@@ -1,4 +1,5 @@
-﻿using Sandbox.ModAPI;
+﻿using Sandbox.Game;
+using Sandbox.ModAPI;
 using System;
 using System.Collections.Generic;
 using VRage;
@@ -15,6 +16,8 @@ namespace Catopia.Refined
         private CommonSettings settings = CommonSettings.Instance;
 
         private List<IMyInventory> inventories = new List<IMyInventory>();
+        private MyInventory refinedInventory;
+        private MyDefinitionId SCDefId = new MyDefinitionId(typeof(MyObjectBuilder_PhysicalObject), "SpaceCredit");
 
         private RefiningInfo refiningInfoI = RefiningInfo.Instance;
         private RefineryInfo refineryInfo;
@@ -22,18 +25,9 @@ namespace Catopia.Refined
         private ScreenRefined screen0;
         internal int CreditSecondsMax;
         private int creditSecondsAvailable;
-        internal int CreditSecondsAvailable
-        {
-            get
-            {
-                return creditSecondsAvailable;
-            }
-            set
-            {
-                creditSecondsAvailable = value;
-                CreditSecondsMax = value;
-            }
-        }
+        private int oresProcessed = 0;
+        private int priceYieldMultiplierCount = 0;
+        private float priceYieldMultiplierSum = 0;
 
         internal enum Result
         {
@@ -43,10 +37,11 @@ namespace Catopia.Refined
             NotEnoughVolume,
             NotEnoughOre
         }
-        internal ContainerInfo(ScreenRefined screen0, int offlineS, string keyWord)
+        internal ContainerInfo(ScreenRefined screen0, int offlineS, string keyWord, MyInventory refinedInventory)
         {
             this.screen0 = screen0;
             this.keyWord = keyWord;
+            this.refinedInventory = refinedInventory;
             refineryInfo = new RefineryInfo(screen0, offlineS, keyWord);
         }
 
@@ -89,6 +84,24 @@ namespace Catopia.Refined
         {
             refineryInfo.Refresh();
         }
+        private void CalcCreditSeconds()
+        {
+            var scAmount = (int)refinedInventory.GetItemAmount(SCDefId);
+            CreditSecondsMax = (int)(scAmount * 3600 / settings.PricePerHour);
+            creditSecondsAvailable = CreditSecondsMax;
+        }
+
+        private void ConsumeCreditSeconds()
+        {
+            int creditSecondsUsed = CreditSecondsMax - creditSecondsAvailable;
+            MyFixedPoint removeAmount = MyFixedPoint.Min(refinedInventory.GetItemAmount(SCDefId), (MyFixedPoint)Math.Ceiling(creditSecondsUsed * settings.PricePerHour / 3600.0));
+            CreditSecondsMax = creditSecondsAvailable;
+            if (removeAmount > 0)
+                refinedInventory.RemoveItemsOfType(removeAmount, SCDefId);
+            screen0.RunInfo.SCpaid += (int)removeAmount;
+            screen0.RunInfo.CreditSecondsUsed += creditSecondsUsed;
+            if (Log.Debug) Log.Msg($"SC removeAmount={removeAmount}");
+        }
 
         internal bool RefineNext()
         {
@@ -96,9 +109,10 @@ namespace Catopia.Refined
                 return false;
             refineryInfo.DisableRefineries();
             refineryInfo.Refresh();
-
+            CalcCreditSeconds();
             Result result = RefineContainer(inventories[index]);
             refineryInfo.ConsumeRefinaryTime();
+            ConsumeCreditSeconds();
             if (Log.Debug) Log.Msg($"RefineContainer result={result}");
 
             switch (result)
@@ -123,6 +137,8 @@ namespace Catopia.Refined
         internal void RefineEnd()
         {
             refineryInfo.EnableRefineries();
+            screen0.RunInfo.OresProcessed = oresProcessed;
+            screen0.RunInfo.AvgPercentCharge = priceYieldMultiplierCount == 0 ? 0 : 100 - (100 * priceYieldMultiplierSum / priceYieldMultiplierCount);
         }
 
         private Result RefineContainer(IMyInventory inventory)
@@ -180,7 +196,7 @@ namespace Catopia.Refined
                     return Result.NotEnoughVolume;
             }
             if (Log.Debug) Log.Msg($"After volume check bpRuns={bpRuns}");
-            //power check.
+
             float priceYieldMultiplier;
             bpRuns = ConsumeRefinaryTime(info.ProductionTime, bpRuns, out priceYieldMultiplier);
             if (bpRuns == 0)
@@ -188,6 +204,10 @@ namespace Catopia.Refined
             if (Log.Debug) Log.Msg($"After time check bpRuns={bpRuns}");
 
             inventory.RemoveItemsOfType(bpRuns * info.Amount, info.ItemId);
+
+            oresProcessed += bpRuns * (int)info.Amount;
+            priceYieldMultiplierSum += priceYieldMultiplier;
+            ++priceYieldMultiplierCount;
 
             foreach (var ingot in info.Ingots)
             {
@@ -213,6 +233,7 @@ namespace Catopia.Refined
                 neededTime = (int)(productionTime * bpRuns / refineryInfo.TotalSpeed);
             }
 
+            if (Log.Debug) Log.Msg($"creditSecondsAvailable={creditSecondsAvailable}");
             if (creditSecondsAvailable <= 0)
             { // run out of credit
                 priceYieldMultiplier = settings.PriceYieldMultiplier;
@@ -228,6 +249,7 @@ namespace Catopia.Refined
                 priceYieldMultiplier = settings.PriceYieldMultiplier + creditSecondsAvailable / neededTime * (1 - settings.PriceYieldMultiplier);
                 creditSecondsAvailable = 0;
             }
+            if (Log.Debug) Log.Msg($"creditSecondsAvailable={creditSecondsAvailable} priceYieldMultiplier={priceYieldMultiplier}");
 
             return bpRuns;
         }

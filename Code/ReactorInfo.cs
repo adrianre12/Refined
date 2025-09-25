@@ -14,7 +14,7 @@ namespace Catopia.Refined
         private MyDefinitionId UDefId = new MyDefinitionId(typeof(MyObjectBuilder_Ingot), "Uranium");
 
         internal float MaxPower;
-        internal float MWseconds { get { return AvaialbleUranium * MWsPerU; } }
+        internal int MWseconds { get { return (int)(AvaialbleUranium * MWsPerU); } }
         internal int AvaialbleUranium;
         internal int ReserveUranium = 50;
 
@@ -78,9 +78,11 @@ namespace Catopia.Refined
         {
             MyFixedPoint remove = (MyFixedPoint)(mWseconds / MWsPerU); //ConsumedUranium
             if (Log.Debug) Log.Msg($"ConsumeUranium MWseconds={mWseconds} remove={remove}");
+            screen0.RunInfo.UraniumUsed += (float)remove;
             foreach (var inventory in inventories)
             {
                 remove -= RemoveUraniumFromInventory(inventory, remove);
+
                 if (remove == 0)
                     break;
             }
