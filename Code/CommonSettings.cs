@@ -15,7 +15,7 @@ namespace Catopia.Refined
         public int PricePerHour = 1000;
         public float PriceYieldMultiplier = 0.95f;
         public int MaxRefineries = 10;
-
+        public int ReserveUranium = 50;
 
         public CommonSettings() { }
 

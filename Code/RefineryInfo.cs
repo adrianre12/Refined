@@ -130,7 +130,7 @@ namespace Catopia.Refined
 
         private void CalcMaxRefiningTime()
         {
-            MaxRefiningTime = (int)Math.Min(reactorInfo.MWseconds / TotalPower, remainingOfflineTime);
+            MaxRefiningTime = (int)Math.Min(reactorInfo.MWseconds / TotalPower, remainingOfflineTime); //fudge for power cost
             RemainingRefiningTime = MaxRefiningTime;
             screen0.RunInfo.MaxRefiningTime = MaxRefiningTime;
             screen0.RunInfo.RemainingRefiningTime = RemainingRefiningTime;
@@ -142,7 +142,7 @@ namespace Catopia.Refined
             var elapsedTime = MaxRefiningTime - RemainingRefiningTime;
             remainingOfflineTime -= elapsedTime;
             screen0.RunInfo.TotalRefiningTime += elapsedTime;
-            reactorInfo.ConsumeUranium(elapsedTime * TotalPower);
+            reactorInfo.ConsumeUranium(elapsedTime * TotalPower); //power cost uses prepaid or MWseconds
         }
 
         internal void Refresh()

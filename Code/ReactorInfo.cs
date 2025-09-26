@@ -16,9 +16,8 @@ namespace Catopia.Refined
         internal float MaxPower;
         internal int MWseconds { get { return (int)(AvaialbleUranium * MWsPerU); } }
         internal int AvaialbleUranium;
-        internal int ReserveUranium = 50;
 
-
+        private CommonSettings settings = CommonSettings.Instance;
         private List<MyInventory> inventories = new List<MyInventory>();
         private ScreenRefined screen0;
 
@@ -40,12 +39,11 @@ namespace Catopia.Refined
                     continue;
                 MyInventory inv = (MyInventory)block.GetInventory();
                 inventories.Add(inv);
-                amountU = (int)inv.GetItemAmount(UDefId) - ReserveUranium;
+                amountU = (int)inv.GetItemAmount(UDefId) - settings.ReserveUranium;
                 if (amountU <= 0)
                     continue;
                 AvaialbleUranium += amountU;
                 MaxPower += block.MaxOutput;
-                //Log.Msg($"Reactor {block.CustomName} maxOutput={block.MaxOutput} amountU={amountU}");
             }
             screen0.RunInfo.NumReactors = inventories.Count;
             screen0.RunInfo.ReactorPower = MaxPower;
@@ -64,7 +62,7 @@ namespace Catopia.Refined
             int amountU = 0;
             foreach (var inv in inventories)
             {
-                amountU = (int)inv.GetItemAmount(UDefId) - ReserveUranium;
+                amountU = (int)inv.GetItemAmount(UDefId) - settings.ReserveUranium;
                 if (amountU <= 0)
                     continue;
                 AvaialbleUranium += amountU;
@@ -76,7 +74,7 @@ namespace Catopia.Refined
 
         internal void ConsumeUranium(float mWseconds)
         {
-            MyFixedPoint remove = (MyFixedPoint)(mWseconds / MWsPerU); //ConsumedUranium
+            MyFixedPoint remove = (MyFixedPoint)(mWseconds * 1 / MWsPerU); //ConsumedUranium
             if (Log.Debug) Log.Msg($"ConsumeUranium MWseconds={mWseconds} remove={remove}");
             screen0.RunInfo.UraniumUsed += (float)remove;
             foreach (var inventory in inventories)

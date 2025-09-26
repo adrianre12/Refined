@@ -191,8 +191,6 @@ namespace Catopia.Refined
                 }
             }
 
-
-
             Dirty = false;
             frame.Dispose();
         }
