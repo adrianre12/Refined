@@ -10,8 +10,6 @@ namespace Catopia.Refined
 {
     internal class RefineryInfo
     {
-        private string keyWord;
-
         private ReactorInfo reactorInfo;
 
         internal float TotalPower;
@@ -23,15 +21,14 @@ namespace Catopia.Refined
         private int remainingOfflineTime;
 
         private List<IMyRefinery> refineryList = new List<IMyRefinery>();
-        private ScreenRefined screen0;
+        private RefinedBlock refined;
         private bool refinariesDisabled;
 
-        public RefineryInfo(ScreenRefined screen0, int offlineS, string keyWord)
+        public RefineryInfo(RefinedBlock refined, int offlineS)
         {
             this.remainingOfflineTime = offlineS;
-            this.screen0 = screen0;
-            this.keyWord = keyWord;
-            reactorInfo = new ReactorInfo(screen0);
+            this.refined = refined;
+            reactorInfo = new ReactorInfo(refined);
         }
 
         internal bool FindRefineriesInfo(IMyCubeGrid cubeGrid)
@@ -60,7 +57,7 @@ namespace Catopia.Refined
             float sumYieldMultiplier = 0;
             foreach (var block in cubeGrid.GetFatBlocks<IMyRefinery>())
             {
-                if (!block.CustomName.Contains(keyWord) || !block.Enabled || !block.IsFunctional)
+                if (!block.CustomName.Contains(refined.KeyWord) || !block.Enabled || !block.IsFunctional)
                     continue;
 
                 productivity = block.UpgradeValues["Productivity"];
@@ -81,29 +78,29 @@ namespace Catopia.Refined
             if (refinaryCount == 0)
             {
                 if (Log.Debug) Log.Msg("No Refineries found.");
-                screen0.AddText("No Refineries found.");
-                screen0.AddText($"Have you added Keyword {keyWord}");
+                refined.screen0.AddText("No Refineries found.");
+                refined.screen0.AddText($"Have you added Keyword {refined.KeyWord}");
                 return false;
             }
             if (TotalPower > reactorInfo.MaxPower)
             {
                 if (Log.Debug) Log.Msg("Not enough reactor power.");
-                screen0.AddText("Not enough reactor power.");
+                refined.screen0.AddText("Not enough reactor power.");
                 return false;
             }
             CalcMaxRefiningTime();
             if (MaxRefiningTime < 1)
             {
                 if (Log.Debug) Log.Msg("Not enough refinary process time.");
-                screen0.AddText("Not enough refinary process time.");
+                refined.screen0.AddText("Not enough refinary process time.");
                 return false;
             }
 
-            screen0.RunInfo.NumRefineries = refineryList.Count;
-            screen0.RunInfo.TotalPower = TotalPower;
-            screen0.RunInfo.TotalSpeed = TotalSpeed;
-            screen0.RunInfo.AvgYieldMultiplier = AvgYieldMultiplier;
-            screen0.Dirty = true;
+            refined.screen0.RunInfo.NumRefineries = refineryList.Count;
+            refined.screen0.RunInfo.TotalPower = TotalPower;
+            refined.screen0.RunInfo.TotalSpeed = TotalSpeed;
+            refined.screen0.RunInfo.AvgYieldMultiplier = AvgYieldMultiplier;
+            refined.screen0.Dirty = true;
 
             return true;
         }
@@ -132,9 +129,9 @@ namespace Catopia.Refined
         {
             MaxRefiningTime = (int)Math.Min(reactorInfo.MWseconds / TotalPower, remainingOfflineTime); //fudge for power cost
             RemainingRefiningTime = MaxRefiningTime;
-            screen0.RunInfo.MaxRefiningTime = MaxRefiningTime;
-            screen0.RunInfo.RemainingRefiningTime = RemainingRefiningTime;
-            screen0.Dirty |= true;
+            refined.screen0.RunInfo.MaxRefiningTime = MaxRefiningTime;
+            refined.screen0.RunInfo.RemainingRefiningTime = RemainingRefiningTime;
+            refined.screen0.Dirty |= true;
         }
 
         /*        internal void ConsumeRefinaryTime()
@@ -150,7 +147,7 @@ namespace Catopia.Refined
         {
             int elapsedTime = MaxRefiningTime - RemainingRefiningTime;
             remainingOfflineTime -= elapsedTime;
-            screen0.RunInfo.TotalRefiningTime += elapsedTime;
+            refined.screen0.RunInfo.TotalRefiningTime += elapsedTime;
 
             return elapsedTime;
         }
@@ -158,7 +155,7 @@ namespace Catopia.Refined
         internal void ConsumeUranium(float elapsedTime, float powerMultiplier)
         {
             float mWseconds = elapsedTime * TotalPower;
-            screen0.RunInfo.MWhPayment = mWseconds * powerMultiplier * 1.0f / 3600;
+            refined.screen0.RunInfo.MWhPayment = mWseconds * powerMultiplier * 1.0f / 3600;
             reactorInfo.ConsumeUranium(mWseconds * (1 + powerMultiplier));
         }
 

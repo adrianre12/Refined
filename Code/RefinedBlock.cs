@@ -1,3 +1,4 @@
+using ProtoBuf;
 using Sandbox.Common.ObjectBuilders;
 using Sandbox.Game;
 using Sandbox.Game.EntityComponents;
@@ -30,7 +31,7 @@ namespace Catopia.Refined
 
         private Guid LastTimeKey = new Guid("0a1db65e-a169-4cf2-9a83-8903add9ca26");
         private MyDefinitionId SCDefId = new MyDefinitionId(typeof(MyObjectBuilder_PhysicalObject), "SpaceCredit");
-        private MyInventory refinedInventory;
+        internal MyInventory RefinedInventory;
 
         private int updateCounter = 0;
         private long checkingCounter = DefaultCheckingCounter;
@@ -40,9 +41,10 @@ namespace Catopia.Refined
 
         private Stopwatch stopWatch = new Stopwatch();
 
-        internal MySync<bool, SyncDirection.BothWays> testButtonState;
+        internal MySync<bool, SyncDirection.BothWays> TestButtonState;
+        internal MySync<int, SyncDirection.BothWays> SliderReserveUranium;
 
-        private ScreenRefined screen0;
+        internal ScreenRefined screen0;
 
         private enum RunState
         {
@@ -57,11 +59,28 @@ namespace Catopia.Refined
 
         private CommonSettings settings = CommonSettings.Instance;
 
+        [ProtoContract(UseProtoMembersOnly = true)]
+        internal class ModStorage
+        {
+            [ProtoMember(1)]
+            public long LastTime;
+            [ProtoMember(2)]
+            public int ReserveUranium;
+
+            public ModStorage()
+            {
+                LastTime = 0;
+                ReserveUranium = 50;
+            }
+        }
+
+        internal ModStorage Storage = new ModStorage();
+
         public override void Init(MyObjectBuilder_EntityBase objectBuilder)
         {
 
             myRefinedBlock = Entity as IMyTextPanel;
-            testButtonState.Value = false;
+            TestButtonState.Value = false;
 
             NeedsUpdate = MyEntityUpdateEnum.BEFORE_NEXT_FRAME;
 
@@ -71,6 +90,8 @@ namespace Catopia.Refined
             if (Entity.Storage == null)
                 Entity.Storage = new MyModStorageComponent();
 
+            LoadFromModStorage();
+
             Log.Msg("Loaded...");
         }
 
@@ -78,13 +99,13 @@ namespace Catopia.Refined
         {
             base.UpdateOnceBeforeFrame();
 
-            refinedInventory = myRefinedBlock.GetInventory() as MyInventory;
+            RefinedInventory = myRefinedBlock.GetInventory() as MyInventory;
             if (!MyAPIGateway.Utilities.IsDedicated) //client only
             {
                 TerminalControls.DoOnce(ModContext);
 
-                refinedInventory.ContentsChanged += RefinedInventory_ContentsChanged;
-                RefinedInventory_ContentsChanged(refinedInventory);
+                RefinedInventory.ContentsChanged += RefinedInventory_ContentsChanged;
+                RefinedInventory_ContentsChanged(RefinedInventory);
             }
 
             if (!MyAPIGateway.Session.IsServer) // server only
@@ -95,10 +116,13 @@ namespace Catopia.Refined
             runState = RunState.Monitoring;
             updateCounter = 0;
 
+
+
             screen0 = new ScreenRefined((IMyTextSurfaceProvider)myRefinedBlock, 0);
             screen0.AddText("Booting ...");
 
-            testButtonState.ValueChanged += TestButtonState_ValueChanged;
+            if (Log.Debug) TestButtonState.ValueChanged += TestButtonState_ValueChanged;
+            SliderReserveUranium.ValueChanged += SliderReserveUraniumServer_ValueChanged;
             myRefinedBlock.EnabledChanged += MyRefinedBlock_EnabledChanged;
 
             NeedsUpdate = MyEntityUpdateEnum.EACH_100TH_FRAME;
@@ -161,7 +185,7 @@ namespace Catopia.Refined
                         if (Log.Debug) Log.Msg("Checking...");
                         screen0.AddText($"Checking...");
                         runState = RunState.Monitoring;
-                        containers = new ContainerInfo(screen0, 1, KeyWord, refinedInventory);
+                        containers = new ContainerInfo(this, 1);
 
                         if (!containers.FindContainerInventories(myRefinedBlock.GetInventory(), myRefinedBlock.CubeGrid))
                         {
@@ -183,16 +207,20 @@ namespace Catopia.Refined
                     }
                 case RunState.Monitoring:
                     {
+                        screen0.ScreenMode = ScreenRefined.Mode.Run;
                         if (Paused())
                         {
                             runState = RunState.Detected;
                             updateCounter = ShortPollPeriod;
-                            screen0.ScreenMode = ScreenRefined.Mode.Run;
                             break;
                         }
 
-                        if (containers == null) //Only happens at first start and forces a check.
+                        if (containers == null)
+                        { //Only happens at first start and forces a check.
                             runState = RunState.Checking;
+                            screen0.AddText($"Startup...");
+                        }
+
                         break;
                     }
                 case RunState.Detected:
@@ -200,7 +228,7 @@ namespace Catopia.Refined
                         if (Log.Debug) Log.Msg("Detected...");
                         screen0.ClearRun();
                         screen0.RunInfo.LastOfflineS = offlineS;
-                        containers = new ContainerInfo(screen0, offlineS, KeyWord, refinedInventory);
+                        containers = new ContainerInfo(this, offlineS);
 
                         if (!containers.FindContainerInventories(myRefinedBlock.GetInventory(), myRefinedBlock.CubeGrid))
                         {
@@ -248,15 +276,24 @@ namespace Catopia.Refined
         }
 
 
-
         private void TestButtonState_ValueChanged(MySync<bool, SyncDirection.BothWays> obj)
         {
-            containers = new ContainerInfo(screen0, 0, KeyWord, refinedInventory);
+            containers = new ContainerInfo(this, 0);
             updateCounter = ShortPollPeriod;
             containers.ReFillInventories(myRefinedBlock.GetInventory(), myRefinedBlock.CubeGrid);
             long thenS = (DateTime.Now.Ticks / TimeSpan.TicksPerSecond) - 86400;
             Entity.Storage[LastTimeKey] = thenS.ToString();
         }
+
+        private void SliderReserveUraniumServer_ValueChanged(MySync<int, SyncDirection.BothWays> obj)
+        {
+            if (Log.Debug) Log.Msg($"Server SliderReserveUranium={SliderReserveUranium.Value}");
+            runState = RunState.Checking;
+            updateCounter = ShortPollPeriod;
+            Storage.ReserveUranium = SliderReserveUranium.Value;
+            SaveToModStorage();
+        }
+
 
         public override void Close()
         {
@@ -268,7 +305,8 @@ namespace Catopia.Refined
                 return;
             if (id == myRefinedBlock.EntityId)
                 blockRegister.Remove(gridId);
-            testButtonState.ValueChanged -= TestButtonState_ValueChanged;
+            if (Log.Debug) TestButtonState.ValueChanged -= TestButtonState_ValueChanged;
+            SliderReserveUranium.ValueChanged -= SliderReserveUraniumServer_ValueChanged;
             myRefinedBlock.EnabledChanged -= MyRefinedBlock_EnabledChanged;
         }
 
@@ -276,34 +314,62 @@ namespace Catopia.Refined
         {
             long nowS = DateTime.Now.Ticks / TimeSpan.TicksPerSecond;
             offlineS = 0;
-            string lastTimeStr;
-            if (Entity.Storage.TryGetValue(LastTimeKey, out lastTimeStr))
-            {
-                long lastS = Convert.ToInt64(lastTimeStr);
-                if (lastS != 0)
-                    offlineS = (int)Math.Min(settings.MaxOfflineHours * 3600, nowS - lastS);
-            }
-            else
-            {
-                Log.Msg($"LastTimeKey not loaded {LastTimeKey}");
-            }
 
-            Entity.Storage[LastTimeKey] = nowS.ToString();
+            LoadFromModStorage();
+            if (Storage.LastTime != 0)
+                offlineS = (int)Math.Min(settings.MaxOfflineHours * 3600, nowS - Storage.LastTime);
+            Storage.LastTime = nowS;
+            SaveToModStorage();
+
 
             if (Log.Debug) Log.Msg($"deltaTimeS = {offlineS}");
 
             return offlineS > settings.MinOfflineMins * 60;
         }
 
+        private void SaveToModStorage()
+        {
+            try
+            {
+                Entity.Storage[LastTimeKey] = Convert.ToBase64String(MyAPIGateway.Utilities.SerializeToBinary(Storage));
+            }
+            catch (Exception e)
+            {
+                Log.Msg($"Error Saving ModStorage\n {e}");
+            }
+        }
 
+        private void LoadFromModStorage()
+        {
+            try
+            {
+                Storage = new ModStorage();
+                string tmp;
+                if (Entity.Storage.TryGetValue(LastTimeKey, out tmp))
+                {
+                    Storage = MyAPIGateway.Utilities.SerializeFromBinary<ModStorage>(Convert.FromBase64String(tmp));
+                }
+                else
+                {
+                    Log.Msg($"Failed to load ModStorage");
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Msg($"Error loading ModStorage\n {e}");
+                Storage = new ModStorage();
+            }
+            SliderReserveUranium.SetLocalValue(Storage.ReserveUranium);
+        }
 
         // On Client
 
 
         internal void TestButtonToggle()
         {
-            testButtonState.Value = !testButtonState.Value;
+            TestButtonState.Value = !TestButtonState.Value;
         }
+
 
         private void RefinedInventory_ContentsChanged(MyInventoryBase refinedInventory)
         {

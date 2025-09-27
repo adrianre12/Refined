@@ -19,11 +19,11 @@ namespace Catopia.Refined
 
         private CommonSettings settings = CommonSettings.Instance;
         private List<MyInventory> inventories = new List<MyInventory>();
-        private ScreenRefined screen0;
+        private RefinedBlock refined;
 
-        public ReactorInfo(ScreenRefined screen0)
+        public ReactorInfo(RefinedBlock refined)
         {
-            this.screen0 = screen0;
+            this.refined = refined;
         }
 
         internal bool FindReactorInfo(IMyCubeGrid cubeGrid)
@@ -39,20 +39,20 @@ namespace Catopia.Refined
                     continue;
                 MyInventory inv = (MyInventory)block.GetInventory();
                 inventories.Add(inv);
-                amountU = (int)inv.GetItemAmount(UDefId) - settings.ReserveUranium;
+                amountU = (int)inv.GetItemAmount(UDefId) - refined.Storage.ReserveUranium;
                 if (amountU <= 0)
                     continue;
                 AvaialbleUranium += amountU;
                 MaxPower += block.MaxOutput;
             }
-            screen0.RunInfo.NumReactors = inventories.Count;
-            screen0.RunInfo.ReactorPower = MaxPower;
-            screen0.RunInfo.AvailableUranium = AvaialbleUranium;
-            screen0.Dirty = true;
+            refined.screen0.RunInfo.NumReactors = inventories.Count;
+            refined.screen0.RunInfo.ReactorPower = MaxPower;
+            refined.screen0.RunInfo.AvailableUranium = AvaialbleUranium;
+            refined.screen0.Dirty = true;
 
             bool OK = AvaialbleUranium > 0;
             if (!OK)
-                screen0.AddText("Not enough Reactor Uranium");
+                refined.screen0.AddText("Not enough Reactor Uranium");
             return OK;
         }
 
@@ -62,20 +62,20 @@ namespace Catopia.Refined
             int amountU = 0;
             foreach (var inv in inventories)
             {
-                amountU = (int)inv.GetItemAmount(UDefId) - settings.ReserveUranium;
+                amountU = (int)inv.GetItemAmount(UDefId) - refined.Storage.ReserveUranium;
                 if (amountU <= 0)
                     continue;
                 AvaialbleUranium += amountU;
             }
             if (Log.Debug) Log.Msg($"AvailableUranium={AvaialbleUranium}");
-            screen0.RunInfo.AvailableUranium = AvaialbleUranium;
-            screen0.Dirty = true;
+            refined.screen0.RunInfo.AvailableUranium = AvaialbleUranium;
+            refined.screen0.Dirty = true;
         }
 
         internal void ConsumeUranium(float mWseconds)
         {
             float consumedUranium = (mWseconds * 1 / MWsPerU);
-            screen0.RunInfo.UraniumUsed += consumedUranium;
+            refined.screen0.RunInfo.UraniumUsed += consumedUranium;
             if (Log.Debug) Log.Msg($"ConsumeUranium MWseconds={mWseconds} consumedUranium ={consumedUranium}");
 
             MyFixedPoint removeU = (MyFixedPoint)consumedUranium;

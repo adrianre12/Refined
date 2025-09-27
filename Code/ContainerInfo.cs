@@ -1,5 +1,4 @@
-﻿using Sandbox.Game;
-using Sandbox.ModAPI;
+﻿using Sandbox.ModAPI;
 using System;
 using System.Collections.Generic;
 using VRage;
@@ -11,18 +10,15 @@ namespace Catopia.Refined
 {
     internal class ContainerInfo
     {
-        private string keyWord;
-
         private CommonSettings settings = CommonSettings.Instance;
 
         private List<IMyInventory> inventories = new List<IMyInventory>();
-        private MyInventory refinedInventory;
         private MyDefinitionId SCDefId = new MyDefinitionId(typeof(MyObjectBuilder_PhysicalObject), "SpaceCredit");
 
         private RefiningInfo refiningInfoI = RefiningInfo.Instance;
         private RefineryInfo refineryInfo;
         private int index;
-        private ScreenRefined screen0;
+        private RefinedBlock refined;
         internal int CreditSecondsMax;
         private int creditSecondsAvailable;
         private int oresProcessed = 0;
@@ -37,12 +33,10 @@ namespace Catopia.Refined
             NotEnoughVolume,
             NotEnoughOre
         }
-        internal ContainerInfo(ScreenRefined screen0, int offlineS, string keyWord, MyInventory refinedInventory)
+        internal ContainerInfo(RefinedBlock refined, int offlineS)
         {
-            this.screen0 = screen0;
-            this.keyWord = keyWord;
-            this.refinedInventory = refinedInventory;
-            refineryInfo = new RefineryInfo(screen0, offlineS, keyWord);
+            this.refined = refined;
+            refineryInfo = new RefineryInfo(refined, offlineS);
         }
 
         internal bool FindContainerInventories(IMyInventory refinedInventory, IMyCubeGrid cubeGrid)
@@ -54,7 +48,7 @@ namespace Catopia.Refined
 
             foreach (var container in cubeGrid.GetFatBlocks<IMyCargoContainer>())
             {
-                if (!container.CustomName.Contains(keyWord) || !container.IsFunctional)
+                if (!container.CustomName.Contains(refined.KeyWord) || !container.IsFunctional)
                     continue;
                 var inventory = container.GetInventory();
                 if (!refinedInventory.IsConnectedTo(inventory))
@@ -68,13 +62,13 @@ namespace Catopia.Refined
             if (inventories.Count == 0)
             {
                 if (Log.Debug) Log.Msg("No container inventories found");
-                screen0.AddText("No containers found.");
-                screen0.AddText($"Have you added Keyword {keyWord}");
+                refined.screen0.AddText("No containers found.");
+                refined.screen0.AddText($"Have you added Keyword {refined.KeyWord}");
 
                 return false;
             }
-            screen0.RunInfo.NumContainers = inventories.Count;
-            screen0.Dirty = true;
+            refined.screen0.RunInfo.NumContainers = inventories.Count;
+            refined.screen0.Dirty = true;
 
             index = 0;
             return true;
@@ -93,7 +87,7 @@ namespace Catopia.Refined
                 return;
             }
 
-            var scAmount = (int)refinedInventory.GetItemAmount(SCDefId);
+            var scAmount = (int)refined.RefinedInventory.GetItemAmount(SCDefId);
             CreditSecondsMax = (int)(scAmount * 3600 / settings.PricePerUnit);
             creditSecondsAvailable = CreditSecondsMax;
             if (Log.Debug) Log.Msg($"CalcCreditSeconds CreditSecondsMax={CreditSecondsMax}");
@@ -105,12 +99,12 @@ namespace Catopia.Refined
                 return;
 
             int creditSecondsUsed = CreditSecondsMax - creditSecondsAvailable;
-            MyFixedPoint removeAmount = MyFixedPoint.Min(refinedInventory.GetItemAmount(SCDefId), (MyFixedPoint)Math.Ceiling(creditSecondsUsed * settings.PricePerUnit * (1 / 3600.0)));
+            MyFixedPoint removeAmount = MyFixedPoint.Min(refined.RefinedInventory.GetItemAmount(SCDefId), (MyFixedPoint)Math.Ceiling(creditSecondsUsed * settings.PricePerUnit * (1 / 3600.0)));
             CreditSecondsMax = creditSecondsAvailable;
             if (removeAmount > 0)
-                refinedInventory.RemoveItemsOfType(removeAmount, SCDefId);
-            screen0.RunInfo.SCpaid += (int)removeAmount;
-            screen0.RunInfo.CreditSecondsUsed += creditSecondsUsed;
+                refined.RefinedInventory.RemoveItemsOfType(removeAmount, SCDefId);
+            refined.screen0.RunInfo.SCpaid += (int)removeAmount;
+            refined.screen0.RunInfo.CreditSecondsUsed += creditSecondsUsed;
             if (Log.Debug) Log.Msg($"ConsumeCreditSeconds ConsumeCreditSeconds={creditSecondsUsed} SC removeAmount={removeAmount}");
         }
 
@@ -148,8 +142,8 @@ namespace Catopia.Refined
         internal void RefineEnd()
         {
             refineryInfo.EnableRefineries();
-            screen0.RunInfo.OresProcessed = oresProcessed;
-            screen0.RunInfo.AvgPercentCharge = priceYieldMultiplierCount == 0 ? 0 : 100 - (100 * priceYieldMultiplierSum / priceYieldMultiplierCount);
+            refined.screen0.RunInfo.OresProcessed = oresProcessed;
+            refined.screen0.RunInfo.AvgPercentCharge = priceYieldMultiplierCount == 0 ? 0 : 100 - (100 * priceYieldMultiplierSum / priceYieldMultiplierCount);
         }
 
         private Result RefineContainer(IMyInventory inventory)
@@ -303,7 +297,7 @@ namespace Catopia.Refined
 
             foreach (var container in cubeGrid.GetFatBlocks<IMyCargoContainer>())
             {
-                if (!container.CustomName.Contains(keyWord) || !container.IsFunctional)
+                if (!container.CustomName.Contains(refined.KeyWord) || !container.IsFunctional)
                     continue;
                 var inventory = container.GetInventory();
                 if (!refinedInventory.IsConnectedTo(inventory))

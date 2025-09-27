@@ -1,8 +1,10 @@
 ﻿using Sandbox.ModAPI;
 using Sandbox.ModAPI.Interfaces.Terminal;
+using System;
 using System.Collections.Generic;
 using VRage.Game.ModAPI;
 using VRage.Utils;
+using VRageMath;
 
 namespace Catopia.Refined
 {
@@ -49,6 +51,40 @@ namespace Catopia.Refined
                 c.Visible = CustomVisibleCondition;
 
                 c.Action = (b) => { b?.GameLogic?.GetAs<RefinedBlock>()?.TestButtonToggle(); };
+
+                MyAPIGateway.TerminalControls.AddControl<IMyTextPanel>(c);
+            }
+
+            {
+                var c = MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlSlider, IMyTextPanel>(IdPrefix + "SliderReserveUranium");
+                c.Title = MyStringId.GetOrCompute("Reserve Uranium");
+                c.Tooltip = MyStringId.GetOrCompute("The number of Uranium ingots to leave in reactors.");
+                c.SupportsMultipleBlocks = true;
+                c.Visible = CustomVisibleCondition;
+
+                c.Setter = (b, v) =>
+                {
+                    var logic = b?.GameLogic?.GetAs<RefinedBlock>();
+                    if (logic != null)
+                        logic.SliderReserveUranium.Value = (int)MathHelper.Clamp(v, 0f, 100f); // just a heads up that the given value here is not clamped by the game, a mod or PB can give lower or higher than the limits!
+                };
+                c.Getter = (b) => b?.GameLogic?.GetAs<RefinedBlock>()?.SliderReserveUranium.Value ?? 0;
+
+                c.SetLimits(0, 100);
+                //c.SetLimits((b) => 0, (b) => 10); // overload with callbacks to define limits based on the block instance.
+                //c.SetDualLogLimits(0, 10, 2); // all these also have callback overloads
+                //c.SetLogLimits(0, 10);
+
+                // called when the value changes so that you can display it next to the label
+                c.Writer = (b, sb) =>
+                {
+                    var logic = b?.GameLogic?.GetAs<RefinedBlock>();
+                    if (logic != null)
+                    {
+                        float val = logic.SliderReserveUranium.Value;
+                        sb.Append(Math.Round(val, 2)).Append(" ingots");
+                    }
+                };
 
                 MyAPIGateway.TerminalControls.AddControl<IMyTextPanel>(c);
             }

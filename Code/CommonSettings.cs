@@ -1,6 +1,7 @@
 ﻿using Sandbox.ModAPI;
 using System;
 using System.Xml.Serialization;
+using VRageMath;
 
 namespace Catopia.Refined
 {
@@ -19,11 +20,10 @@ namespace Catopia.Refined
         public float PriceUnitPercent
         {
             get { return priceUnitPercent; }
-            set { priceUnitPercent = Clamp(value, 0, 100); }
+            set { priceUnitPercent = MathHelper.Clamp(value, 0, 100); }
         }
         public PaymentMode PaymentType = PaymentMode.PerHour;
         public int MaxRefineries = 10;
-        public int ReserveUranium = 50;
 
         [XmlIgnore]
         public float PriceYieldMultiplier
@@ -123,9 +123,5 @@ namespace Catopia.Refined
             }
         }
 
-        public static float Clamp(float value, float min, float max)
-        {
-            return (value < min) ? min : (value > max) ? max : value;
-        }
     }
 }
