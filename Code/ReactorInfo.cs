@@ -74,14 +74,15 @@ namespace Catopia.Refined
 
         internal void ConsumeUranium(float mWseconds)
         {
-            MyFixedPoint remove = (MyFixedPoint)(mWseconds * 1 / MWsPerU); //ConsumedUranium
-            if (Log.Debug) Log.Msg($"ConsumeUranium MWseconds={mWseconds} remove={remove}");
-            screen0.RunInfo.UraniumUsed += (float)remove;
+            float consumedUranium = (mWseconds * 1 / MWsPerU);
+            screen0.RunInfo.UraniumUsed += consumedUranium;
+            if (Log.Debug) Log.Msg($"ConsumeUranium MWseconds={mWseconds} consumedUranium ={consumedUranium}");
+
+            MyFixedPoint removeU = (MyFixedPoint)consumedUranium;
             foreach (var inventory in inventories)
             {
-                remove -= RemoveUraniumFromInventory(inventory, remove);
-
-                if (remove == 0)
+                removeU -= RemoveUraniumFromInventory(inventory, removeU);
+                if (removeU == 0)
                     break;
             }
         }

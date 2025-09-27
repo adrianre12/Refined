@@ -137,12 +137,29 @@ namespace Catopia.Refined
             screen0.Dirty |= true;
         }
 
-        internal void ConsumeRefinaryTime()
+        /*        internal void ConsumeRefinaryTime()
+                {
+                    var elapsedTime = MaxRefiningTime - RemainingRefiningTime;
+                    remainingOfflineTime -= elapsedTime;
+                    screen0.RunInfo.TotalRefiningTime += elapsedTime;
+
+                    reactorInfo.ConsumeUranium(elapsedTime * TotalPower); //power cost uses prepaid or MWseconds
+                }*/
+
+        internal int RefinaryElapsedTime()
         {
-            var elapsedTime = MaxRefiningTime - RemainingRefiningTime;
+            int elapsedTime = MaxRefiningTime - RemainingRefiningTime;
             remainingOfflineTime -= elapsedTime;
             screen0.RunInfo.TotalRefiningTime += elapsedTime;
-            reactorInfo.ConsumeUranium(elapsedTime * TotalPower); //power cost uses prepaid or MWseconds
+
+            return elapsedTime;
+        }
+
+        internal void ConsumeUranium(float elapsedTime, float powerMultiplier)
+        {
+            float mWseconds = elapsedTime * TotalPower;
+            screen0.RunInfo.MWhPayment = mWseconds * powerMultiplier * 1.0f / 3600;
+            reactorInfo.ConsumeUranium(mWseconds * (1 + powerMultiplier));
         }
 
         internal void Refresh()

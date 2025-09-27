@@ -11,6 +11,7 @@ namespace Catopia.Refined
         private List<string> screenText = new List<string>();
 
         private readonly Color GreenCRT = new Color(51, 255, 0);
+        private CommonSettings settings = CommonSettings.Instance;
 
         internal enum Mode
         {
@@ -143,14 +144,41 @@ namespace Catopia.Refined
             frame.Add(NewTextSprite($"{RunInfo.NumContainers}", position + positionTab1, Color.Green));
             position.Y += LineSpaceing * 1.2f;
 
-            frame.Add(NewTextSprite("Price SC/hr:", position));
-            frame.Add(NewTextSprite($"{RunInfo.PricePerHour} SC", position + positionTab1, Color.Green));
+            frame.Add(NewTextSprite("Payment type:", position));
+            frame.Add(NewTextSprite($"{settings.PaymentType}", position + positionTab1, Color.Green));
             position.Y += LineSpaceing * 1f;
 
-            frame.Add(NewTextSprite("   Or Ingots:", position));
-            frame.Add(NewTextSprite($"{RunInfo.Percent:0.#}%", position + positionTab1, Color.Green));
-            position.Y += LineSpaceing * 1.2f;
+            switch (settings.PaymentType)
+            {
+                case CommonSettings.PaymentMode.PerHour:
+                    {
+                        frame.Add(NewTextSprite("Price SC/hr:", position));
+                        frame.Add(NewTextSprite($"{settings.PricePerUnit} SC", position + positionTab1, Color.Green));
+                        position.Y += LineSpaceing * 1f;
 
+                        frame.Add(NewTextSprite("   Or Ingots:", position));
+                        frame.Add(NewTextSprite($"{settings.PriceUnitPercent:0.#}%", position + positionTab1, Color.Green));
+                        position.Y += LineSpaceing * 1.2f;
+                        break;
+                    }
+                case CommonSettings.PaymentMode.PerMWh:
+                    {
+                        frame.Add(NewTextSprite("Price SC/MWh:", position));
+                        frame.Add(NewTextSprite($"{settings.PricePerUnit} SC", position + positionTab1, Color.Green));
+                        position.Y += LineSpaceing * 1f;
+
+                        frame.Add(NewTextSprite("   Or MWh:", position));
+                        frame.Add(NewTextSprite($"{settings.PriceUnitPercent:0.#}%", position + positionTab1, Color.Green));
+                        position.Y += LineSpaceing * 1.2f;
+                        break;
+
+                    }
+                default:
+                    {
+                        break;
+                    }
+
+            }
             if (RunInfo.LastOfflineS != 0)
             {
                 frame.Add(NewTextSprite("Offline:", position));
@@ -181,9 +209,28 @@ namespace Catopia.Refined
                     frame.Add(NewTextSprite($"{RunInfo.SCpaid} SC", position + positionTab1, Color.Green));
                     position.Y += LineSpaceing;
 
-                    frame.Add(NewTextSprite("Ingots taken:", position));
-                    frame.Add(NewTextSprite($"{RunInfo.AvgPercentCharge:0.#}%", position + positionTab1, Color.Green));
-                    position.Y += LineSpaceing * 1.2f;
+                    switch (settings.PaymentType)
+                    {
+                        case CommonSettings.PaymentMode.PerHour:
+                            {
+                                frame.Add(NewTextSprite("Ingots taken:", position));
+                                frame.Add(NewTextSprite($"{RunInfo.AvgPercentCharge:0.#}%", position + positionTab1, Color.Green));
+                                position.Y += LineSpaceing * 1.2f;
+                                break;
+                            }
+                        case CommonSettings.PaymentMode.PerMWh:
+                            {
+                                frame.Add(NewTextSprite("Power taken:", position));
+                                frame.Add(NewTextSprite($"{RunInfo.MWhPayment:0.###}MWh", position + positionTab1, Color.Green));
+                                position.Y += LineSpaceing * 1.2f;
+                                break;
+                            }
+                        default:
+                            {
+                                position.Y += LineSpaceing * 0.2f;
+                                break;
+                            }
+                    }
 
                     frame.Add(NewTextSprite("Uranium Used:", position));
                     frame.Add(NewTextSprite($"{RunInfo.UraniumUsed:0.##}", position + positionTab1, Color.Green));
@@ -214,22 +261,18 @@ namespace Catopia.Refined
             internal float MaxRefiningTime;
             internal float RemainingRefiningTime;
             internal int NumContainers;
-            internal int PricePerHour;
-            internal float Percent;
             internal int LastOfflineS;
             internal int SCpaid;
             internal int CreditSecondsUsed;
             internal float TotalRefiningTime;
             internal float UraniumUsed;
+            internal float MWhPayment;
             internal int OresProcessed;
             internal float AvgPercentCharge;
 
             internal ScreenRunInfo()
             {
                 var settings = CommonSettings.Instance;
-
-                PricePerHour = settings.PricePerHour;
-                Percent = (float)(0.1 * Math.Round(1000 * (1 - settings.PriceYieldMultiplier)));
             }
         }
 

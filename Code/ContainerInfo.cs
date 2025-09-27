@@ -86,21 +86,32 @@ namespace Catopia.Refined
         }
         private void CalcCreditSeconds()
         {
+            if (settings.PricePerUnit <= 0)
+            {
+                CreditSecondsMax = 0;
+                creditSecondsAvailable = 0;
+                return;
+            }
+
             var scAmount = (int)refinedInventory.GetItemAmount(SCDefId);
-            CreditSecondsMax = (int)(scAmount * 3600 / settings.PricePerHour);
+            CreditSecondsMax = (int)(scAmount * 3600 / settings.PricePerUnit);
             creditSecondsAvailable = CreditSecondsMax;
+            if (Log.Debug) Log.Msg($"CalcCreditSeconds CreditSecondsMax={CreditSecondsMax}");
         }
 
         private void ConsumeCreditSeconds()
         {
+            if (settings.PricePerUnit <= 0)
+                return;
+
             int creditSecondsUsed = CreditSecondsMax - creditSecondsAvailable;
-            MyFixedPoint removeAmount = MyFixedPoint.Min(refinedInventory.GetItemAmount(SCDefId), (MyFixedPoint)Math.Ceiling(creditSecondsUsed * settings.PricePerHour / 3600.0));
+            MyFixedPoint removeAmount = MyFixedPoint.Min(refinedInventory.GetItemAmount(SCDefId), (MyFixedPoint)Math.Ceiling(creditSecondsUsed * settings.PricePerUnit * (1 / 3600.0)));
             CreditSecondsMax = creditSecondsAvailable;
             if (removeAmount > 0)
                 refinedInventory.RemoveItemsOfType(removeAmount, SCDefId);
             screen0.RunInfo.SCpaid += (int)removeAmount;
             screen0.RunInfo.CreditSecondsUsed += creditSecondsUsed;
-            if (Log.Debug) Log.Msg($"SC removeAmount={removeAmount}");
+            if (Log.Debug) Log.Msg($"ConsumeCreditSeconds ConsumeCreditSeconds={creditSecondsUsed} SC removeAmount={removeAmount}");
         }
 
         internal bool RefineNext()
@@ -111,9 +122,9 @@ namespace Catopia.Refined
             refineryInfo.Refresh();
             CalcCreditSeconds();
             Result result = RefineContainer(inventories[index]);
-            refineryInfo.ConsumeRefinaryTime();
+            ConsumeRefinaryTime();
             ConsumeCreditSeconds();
-            if (Log.Debug) Log.Msg($"RefineContainer result={result}");
+            if (Log.Debug) Log.Msg($"RefineContainer result={result}\n---------------------------------------");
 
             switch (result)
             {
@@ -198,7 +209,7 @@ namespace Catopia.Refined
             if (Log.Debug) Log.Msg($"After volume check bpRuns={bpRuns}");
 
             float priceYieldMultiplier;
-            bpRuns = ConsumeRefinaryTime(info.ProductionTime, bpRuns, out priceYieldMultiplier);
+            bpRuns = RefinaryTimeCheck(info.ProductionTime, bpRuns, out priceYieldMultiplier);
             if (bpRuns == 0)
                 return Result.NoTime;
             if (Log.Debug) Log.Msg($"After time check bpRuns={bpRuns}");
@@ -217,7 +228,7 @@ namespace Catopia.Refined
             return Result.Success;
         }
 
-        private int ConsumeRefinaryTime(float productionTime, int bpRuns, out float priceYieldMultiplier)
+        private int RefinaryTimeCheck(float productionTime, int bpRuns, out float priceYieldMultiplier)
         {
             int neededTime = (int)(productionTime * bpRuns / refineryInfo.TotalSpeed);
 
@@ -234,24 +245,56 @@ namespace Catopia.Refined
             }
 
             if (Log.Debug) Log.Msg($"creditSecondsAvailable={creditSecondsAvailable}");
-            if (creditSecondsAvailable <= 0)
-            { // run out of credit
-                priceYieldMultiplier = settings.PriceYieldMultiplier;
-            }
-            else if (neededTime <= creditSecondsAvailable)
+
+            priceYieldMultiplier = 1;
+
+            if (settings.PaymentType == CommonSettings.PaymentMode.PerHour)
             {
-                priceYieldMultiplier = 1;
-                creditSecondsAvailable -= neededTime;
+                if (creditSecondsAvailable <= 0)
+                { // run out of credit
+                    priceYieldMultiplier = settings.PriceYieldMultiplier;
+                }
+                else if (neededTime <= creditSecondsAvailable)
+                {
+                    creditSecondsAvailable -= neededTime;
+                }
+                else
+                {
+                    //lerp
+                    priceYieldMultiplier = settings.PriceYieldMultiplier + creditSecondsAvailable / neededTime * (1 - settings.PriceYieldMultiplier);
+                    creditSecondsAvailable = 0;
+                }
+                if (Log.Debug) Log.Msg($"creditSecondsAvailable={creditSecondsAvailable} priceYieldMultiplier={priceYieldMultiplier}");
             }
-            else
-            {
-                //lerp
-                priceYieldMultiplier = settings.PriceYieldMultiplier + creditSecondsAvailable / neededTime * (1 - settings.PriceYieldMultiplier);
-                creditSecondsAvailable = 0;
-            }
-            if (Log.Debug) Log.Msg($"creditSecondsAvailable={creditSecondsAvailable} priceYieldMultiplier={priceYieldMultiplier}");
 
             return bpRuns;
+        }
+
+        internal void ConsumeRefinaryTime()
+        {
+            int elapsedTime = refineryInfo.RefinaryElapsedTime();
+            float powerMultiplier = 0;
+
+            if (settings.PaymentType == CommonSettings.PaymentMode.PerMWh)
+            {
+                if (creditSecondsAvailable <= 0)
+                { // run out of credit
+                    powerMultiplier = settings.PricePowerMultiplier;
+                }
+                else if (elapsedTime <= creditSecondsAvailable)
+                {
+                    creditSecondsAvailable -= elapsedTime;
+                }
+                else
+                {
+                    //lerp
+                    powerMultiplier = settings.PricePowerMultiplier - creditSecondsAvailable * settings.PricePowerMultiplier * 1.0f / elapsedTime;
+                    creditSecondsAvailable = 0;
+                }
+                if (Log.Debug) Log.Msg($"elapsedTime={elapsedTime} creditSecondsAvailable ={creditSecondsAvailable} powerMultiplier={powerMultiplier}");
+            }
+
+            refineryInfo.ConsumeUranium(elapsedTime, powerMultiplier);
         }
 
         internal void ReFillInventories(IMyInventory refinedInventory, IMyCubeGrid cubeGrid)
