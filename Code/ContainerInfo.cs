@@ -1,6 +1,7 @@
 ﻿using Sandbox.ModAPI;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using VRage;
 using VRage.Game;
 using VRage.Game.ModAPI;
@@ -24,6 +25,7 @@ namespace Catopia.Refined
         private int oresProcessed = 0;
         private int priceYieldMultiplierCount = 0;
         private float priceYieldMultiplierSum = 0;
+        private Stopwatch stopwatch = new Stopwatch();
 
         internal enum Result
         {
@@ -42,13 +44,18 @@ namespace Catopia.Refined
         internal bool FindContainerInventories(IMyInventory refinedInventory, IMyCubeGrid cubeGrid)
         {
             if (Log.Debug) Log.Msg("FindContainerInventories");
+            if (settings.EnableTiming) stopwatch.Restart();
+
+
 
             if (!refineryInfo.FindRefineriesInfo(cubeGrid))
                 return false;
 
+            if (settings.EnableTiming) Log.Msg($"FindInventories Elapsed  after refinaries {stopwatch.ElapsedTicks / 10.0} uS");
+
             foreach (var container in cubeGrid.GetFatBlocks<IMyCargoContainer>())
             {
-                if (!container.CustomName.Contains(refined.KeyWord) || !container.IsFunctional)
+                if (!container.CustomName.Contains(RefinedBlock.KeyWord) || !container.IsFunctional)
                     continue;
                 var inventory = container.GetInventory();
                 if (!refinedInventory.IsConnectedTo(inventory))
@@ -63,7 +70,7 @@ namespace Catopia.Refined
             {
                 if (Log.Debug) Log.Msg("No container inventories found");
                 refined.screen0.AddText("No containers found.");
-                refined.screen0.AddText($"Have you added Keyword {refined.KeyWord}");
+                refined.screen0.AddText($"Have you added Keyword {RefinedBlock.KeyWord}");
 
                 return false;
             }
@@ -71,6 +78,9 @@ namespace Catopia.Refined
             refined.screen0.Dirty = true;
 
             index = 0;
+
+            if (settings.EnableTiming) Log.Msg($"FindInventories Elapsed total {stopwatch.ElapsedTicks / 10.0} uS");
+
             return true;
         }
 
@@ -112,6 +122,7 @@ namespace Catopia.Refined
         {
             if (index >= inventories.Count || index >= settings.MaxRefineries)
                 return false;
+            if (settings.EnableTiming) stopwatch.Restart();
             refineryInfo.DisableRefineries();
             refineryInfo.Refresh();
             CalcCreditSeconds();
@@ -130,10 +141,11 @@ namespace Catopia.Refined
 
                 default:
                     {
+                        //if (settings.EnableTiming) Log.Msg($"RefineNext Elapsed end {stopwatch.ElapsedTicks / 10.0} uS");
                         return false;
                     }
             }
-
+            // if (settings.EnableTiming) Log.Msg($"RefineNext Elapsed end {stopwatch.ElapsedTicks / 10.0} uS");
             return index < inventories.Count;
 
         }
@@ -148,6 +160,8 @@ namespace Catopia.Refined
 
         private Result RefineContainer(IMyInventory inventory)
         {
+            // if (settings.EnableTiming) Log.Msg($"RefineContainer Elapsed start {stopwatch.ElapsedTicks / 10.0} uS");
+
             foreach (var oreItemId in refiningInfoI.OrderedOreList)
             {
                 if (refineryInfo.RemainingRefiningTime == 0)
@@ -159,8 +173,9 @@ namespace Catopia.Refined
                     Log.Msg($"Failed to get info for {oreItemId}");
                     return Result.Error;
                 }
-
+                //if (settings.EnableTiming) Log.Msg($"RefineInventoryOre Elapsed start {stopwatch.ElapsedTicks / 10.0} uS");
                 Result result = RefineInventoryOre(inventory, info);
+                //if (settings.EnableTiming) Log.Msg($"RefineInventoryOre Elapsed end {stopwatch.ElapsedTicks / 10.0} uS");
                 if (Log.Debug) Log.Msg($"RefineInventoryOre result={result}");
                 switch (result)
                 {
@@ -170,10 +185,12 @@ namespace Catopia.Refined
                         break;
                     default:
                         {
+                            // if (settings.EnableTiming) Log.Msg($"RefineContainer Elapsed end {stopwatch.ElapsedTicks / 10.0} uS");
                             return result;
                         }
                 }
             }
+            // if (settings.EnableTiming) Log.Msg($"RefineContainer Elapsed end {stopwatch.ElapsedTicks / 10.0} uS");
             return Result.Success;
         }
 
@@ -219,6 +236,7 @@ namespace Catopia.Refined
                 MyFixedPoint ingotAmount = ingot.Amount * (refineryInfo.AvgYieldMultiplier * bpRuns * priceYieldMultiplier);
                 inventory.AddItems(ingotAmount, (MyObjectBuilder_PhysicalObject)MyObjectBuilderSerializer.CreateNewObject(ingot.ItemId));
             }
+
             return Result.Success;
         }
 
@@ -297,7 +315,7 @@ namespace Catopia.Refined
 
             foreach (var container in cubeGrid.GetFatBlocks<IMyCargoContainer>())
             {
-                if (!container.CustomName.Contains(refined.KeyWord) || !container.IsFunctional)
+                if (!container.CustomName.Contains(RefinedBlock.KeyWord) || !container.IsFunctional)
                     continue;
                 var inventory = container.GetInventory();
                 if (!refinedInventory.IsConnectedTo(inventory))

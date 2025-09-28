@@ -2,6 +2,7 @@
 using Sandbox.ModAPI;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using VRage.Game;
 using VRage.Game.ModAPI;
 
@@ -23,6 +24,8 @@ namespace Catopia.Refined
         private List<IMyRefinery> refineryList = new List<IMyRefinery>();
         private RefinedBlock refined;
         private bool refinariesDisabled;
+        private Stopwatch stopwatch = new Stopwatch();
+        private CommonSettings settings = CommonSettings.Instance;
 
         public RefineryInfo(RefinedBlock refined, int offlineS)
         {
@@ -34,8 +37,11 @@ namespace Catopia.Refined
         internal bool FindRefineriesInfo(IMyCubeGrid cubeGrid)
         {
             if (Log.Debug) Log.Msg("FindRefineriesInfo");
+            if (settings.EnableTiming) stopwatch.Restart();
+
             if (!reactorInfo.FindReactorInfo(cubeGrid))
                 return false;
+            if (settings.EnableTiming) Log.Msg($"FindRefinaries Elapsed after Reactors {stopwatch.ElapsedTicks / 10.0} uS");
 
             refineryList.Clear();
 
@@ -57,7 +63,7 @@ namespace Catopia.Refined
             float sumYieldMultiplier = 0;
             foreach (var block in cubeGrid.GetFatBlocks<IMyRefinery>())
             {
-                if (!block.CustomName.Contains(refined.KeyWord) || !block.Enabled || !block.IsFunctional)
+                if (!block.CustomName.Contains(RefinedBlock.KeyWord) || !block.Enabled || !block.IsFunctional)
                     continue;
 
                 productivity = block.UpgradeValues["Productivity"];
@@ -79,7 +85,7 @@ namespace Catopia.Refined
             {
                 if (Log.Debug) Log.Msg("No Refineries found.");
                 refined.screen0.AddText("No Refineries found.");
-                refined.screen0.AddText($"Have you added Keyword {refined.KeyWord}");
+                refined.screen0.AddText($"Have you added Keyword {RefinedBlock.KeyWord}");
                 return false;
             }
             if (TotalPower > reactorInfo.MaxPower)
@@ -101,6 +107,8 @@ namespace Catopia.Refined
             refined.screen0.RunInfo.TotalSpeed = TotalSpeed;
             refined.screen0.RunInfo.AvgYieldMultiplier = AvgYieldMultiplier;
             refined.screen0.Dirty = true;
+
+            if (settings.EnableTiming) Log.Msg($"FindRefineries Elapsed total {stopwatch.ElapsedTicks / 10.0} uS");
 
             return true;
         }

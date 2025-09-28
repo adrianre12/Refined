@@ -1,6 +1,7 @@
 ﻿using Sandbox.ModAPI;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using VRageMath;
 
 namespace Catopia.Refined
@@ -12,6 +13,8 @@ namespace Catopia.Refined
 
         private readonly Color GreenCRT = new Color(51, 255, 0);
         private CommonSettings settings = CommonSettings.Instance;
+
+        private Stopwatch stopwatch = new Stopwatch();
 
         internal enum Mode
         {
@@ -47,11 +50,12 @@ namespace Catopia.Refined
 
         internal void Refresh()
         {
-            Log.Msg($"Refresh dirty={Dirty} counter={callCounter}");
+            if (Log.Debug) Log.Msg($"Refresh dirty={Dirty} counter={callCounter}");
             if (!Dirty && --callCounter > 0)
                 return;
             callCounter = DefaultCallCounter;
 
+            //            if (settings.EnableTiming) stopwatch.Restart();
             switch (screenMode)
             {
                 case Mode.Text:
@@ -61,16 +65,19 @@ namespace Catopia.Refined
                     }
                 case Mode.Run:
                     {
+                        //                        if (settings.EnableTiming) Log.Msg($"Refresh Elapsed switch {stopwatch.ElapsedTicks / 10.0} uS");
+
                         ScreenRun();
                         break;
                     }
             }
+            //if (settings.EnableTiming) Log.Msg($"Refresh Elapsed total {stopwatch.ElapsedTicks / 10.0} uS");
 
         }
 
         internal void AddText(string text)
         {
-            Log.Msg($"AddText {text}");
+            if (Log.Debug) Log.Msg($"AddText {text}");
             if (screenText.Count > 19)
                 screenText.RemoveAt(0);
             screenText.Add(text);
@@ -88,6 +95,7 @@ namespace Catopia.Refined
         {
             var frame = GetFrame(Color.Black);
             var position = new Vector2(5, 0);
+            //           if (settings.EnableTiming) Log.Msg($"ScreenText Elapsed GetFrame {stopwatch.ElapsedTicks / 10.0} uS");
 
             foreach (var line in screenText)
             {
@@ -97,13 +105,19 @@ namespace Catopia.Refined
 
             frame.Dispose();
             Dirty = false;
+            //           if (settings.EnableTiming) Log.Msg($"ScreenText Elapsed Total {stopwatch.ElapsedTicks / 10.0} uS");
+
         }
 
         internal void ScreenRun()
         {
+            //           if (settings.EnableTiming) Log.Msg($"ScreenRun Elapsed in ScreenRun {stopwatch.ElapsedTicks / 10.0} uS");
             var frame = GetFrame();
+            //            if (settings.EnableTiming) Log.Msg($"ScreenRun Elapsed GetFrame {stopwatch.ElapsedTicks / 10.0} uS");
+
             var position = new Vector2(5, 0);
             var positionTab1 = new Vector2(170, 0);
+
             /*            for (int x = 0; x < viewport.Width; x += 50)
                             frame.Add(NewTextSprite("_", new Vector2(position.X + x, position.Y)));
                           for (int y = 0; y < 20; ++y)
@@ -240,6 +254,8 @@ namespace Catopia.Refined
 
             Dirty = false;
             frame.Dispose();
+            //            if (settings.EnableTiming) Log.Msg($"ScreenRun Elapsed Total {stopwatch.ElapsedTicks / 10.0} uS");
+
         }
 
         internal void ClearRun()

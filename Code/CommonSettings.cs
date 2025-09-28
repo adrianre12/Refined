@@ -1,5 +1,6 @@
 ﻿using Sandbox.ModAPI;
 using System;
+using System.Collections.Generic;
 using System.Xml.Serialization;
 using VRageMath;
 
@@ -9,21 +10,34 @@ namespace Catopia.Refined
     {
         const string configFilename = "Config-Refined.xml";
         const string notesFilename = "Config-Refined.txt";
-        const string notes = "Setting PricePerUint = 0 disables Space Credit charges.\nPaymentType [None|PerHour|PerMWh]";
+        private static readonly List<string> notes = new List<string>{ "Setting PricePerUint = 0 disables Space Credit charges.",
+            "PaymentType [None|PerHour|PerMWh]",
+            "For PerMWh consider setting PricePerUnit to at least the price of one Uranium Ingot, as one ingot equals 1 MWh.",
+            "The vanilla price of Uranium ingots is 76823, but only PriceUnitPercent of this is charged.",
+            "Example: A Refinery uses 560KW, with PricePerUnit=5%. The cost per hour = 0.56 * 0.05 * 76823 = 2151 SC/h",
+            "EnableTestButton adds a button to the terminal that adds ores to the inventories and sets the offline period to 1 day",
+            "Don't use this in production, it gives free ingots!",
+            "EnableTiming logs elapsed time for the Run and Screen refresh."};
 
         private static CommonSettings instance;
 
         public int MinOfflineMins = 15;
         public int MaxOfflineHours = 120;
-        public int PricePerUnit = 1000;
+        public int PricePerUnit = 76823;
         private float priceUnitPercent = 5f;
         public float PriceUnitPercent
         {
             get { return priceUnitPercent; }
             set { priceUnitPercent = MathHelper.Clamp(value, 0, 100); }
         }
-        public PaymentMode PaymentType = PaymentMode.PerHour;
+        public PaymentMode PaymentType = PaymentMode.PerMWh;
         public int MaxRefineries = 10;
+
+        public bool EnableTestButton = false;
+        public bool EnableTiming = false;
+
+
+        public string Debug = null;
 
         [XmlIgnore]
         public float PriceYieldMultiplier
@@ -111,7 +125,8 @@ namespace Catopia.Refined
                     Log.Msg($"Creating notes file {notesFilename}");
                     using (var writer = MyAPIGateway.Utilities.WriteFileInWorldStorage(notesFilename, typeof(CommonSettings)))
                     {
-                        writer.Write(notes);
+                        foreach (string note in notes)
+                            writer.WriteLine(note);
                     }
 
                 }

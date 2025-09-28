@@ -43,6 +43,7 @@ namespace Catopia.Refined
                 MyAPIGateway.TerminalControls.AddControl<IMyTextPanel>(c);
             }
 
+            if (CommonSettings.Instance.EnableTestButton)
             {
                 var c = MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlButton, IMyTextPanel>(IdPrefix + "TestButton");
                 c.Title = MyStringId.GetOrCompute("Test");
