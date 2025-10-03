@@ -20,8 +20,8 @@ namespace Catopia.Refined
         private RefineryInfo refineryInfo;
         private int index;
         private RefinedBlock refined;
-        internal int CreditSecondsMax;
-        private int creditSecondsAvailable;
+        internal int CreditUnitsMax;
+        private int creditUnitsAvailable;
         private int oresProcessed = 0;
         private int priceYieldMultiplierCount = 0;
         private float priceYieldMultiplierSum = 0;
@@ -88,34 +88,37 @@ namespace Catopia.Refined
         {
             refineryInfo.Refresh();
         }
-        private void CalcCreditSeconds()
+
+        private void CalcCreditUnits()
         {
             if (settings.PricePerUnit <= 0)
             {
-                CreditSecondsMax = 0;
-                creditSecondsAvailable = 0;
+                CreditUnitsMax = 0;
+                creditUnitsAvailable = 0;
                 return;
             }
 
             var scAmount = (int)refined.RefinedInventory.GetItemAmount(SCDefId);
-            CreditSecondsMax = (int)(scAmount * 3600 / settings.PricePerUnit);
-            creditSecondsAvailable = CreditSecondsMax;
-            if (Log.Debug) Log.Msg($"CalcCreditSeconds CreditSecondsMax={CreditSecondsMax}");
+
+            CreditUnitsMax = (scAmount * 3600) / settings.PricePerUnit;
+
+            creditUnitsAvailable = CreditUnitsMax;
+            if (Log.Debug) Log.Msg($"CalcCreditUnits CreditUnitsMax={CreditUnitsMax}");
         }
 
-        private void ConsumeCreditSeconds()
+        private void ConsumeCreditUnits()
         {
             if (settings.PricePerUnit <= 0)
                 return;
 
-            int creditSecondsUsed = CreditSecondsMax - creditSecondsAvailable;
+            int creditSecondsUsed = CreditUnitsMax - creditUnitsAvailable;
             MyFixedPoint removeAmount = MyFixedPoint.Min(refined.RefinedInventory.GetItemAmount(SCDefId), (MyFixedPoint)Math.Ceiling(creditSecondsUsed * settings.PricePerUnit * (1 / 3600.0)));
-            CreditSecondsMax = creditSecondsAvailable;
+            CreditUnitsMax = creditUnitsAvailable;
             if (removeAmount > 0)
                 refined.RefinedInventory.RemoveItemsOfType(removeAmount, SCDefId);
             refined.screen0.RunInfo.SCpaid += (int)removeAmount;
-            refined.screen0.RunInfo.CreditSecondsUsed += creditSecondsUsed;
-            if (Log.Debug) Log.Msg($"ConsumeCreditSeconds ConsumeCreditSeconds={creditSecondsUsed} SC removeAmount={removeAmount}");
+            refined.screen0.RunInfo.CreditUnitsUsed += creditSecondsUsed;
+            if (Log.Debug) Log.Msg($"ConsumeCreditUnits ConsumeCreditUnits={creditSecondsUsed} SC removeAmount={removeAmount}");
         }
 
         internal bool RefineNext()
@@ -125,10 +128,10 @@ namespace Catopia.Refined
             if (settings.EnableTiming) stopwatch.Restart();
             refineryInfo.DisableRefineries();
             refineryInfo.Refresh();
-            CalcCreditSeconds();
+            CalcCreditUnits();
             Result result = RefineContainer(inventories[index]);
             ConsumeRefinaryTime();
-            ConsumeCreditSeconds();
+            ConsumeCreditUnits();
             if (Log.Debug) Log.Msg($"RefineContainer result={result}\n---------------------------------------");
 
             switch (result)
@@ -256,27 +259,28 @@ namespace Catopia.Refined
                 neededTime = (int)(productionTime * bpRuns / refineryInfo.TotalSpeed);
             }
 
-            if (Log.Debug) Log.Msg($"creditSecondsAvailable={creditSecondsAvailable}");
 
             priceYieldMultiplier = 1;
 
             if (settings.PaymentType == CommonSettings.PaymentMode.PerHour)
             {
-                if (creditSecondsAvailable <= 0)
+                if (Log.Debug) Log.Msg($"RefinaryTimeCheck creditSecondsAvailable={creditUnitsAvailable}");
+
+                if (creditUnitsAvailable <= 0)
                 { // run out of credit
                     priceYieldMultiplier = settings.PriceYieldMultiplier;
                 }
-                else if (neededTime <= creditSecondsAvailable)
+                else if (neededTime <= creditUnitsAvailable)
                 {
-                    creditSecondsAvailable -= neededTime;
+                    creditUnitsAvailable -= neededTime;
                 }
                 else
                 {
                     //lerp
-                    priceYieldMultiplier = settings.PriceYieldMultiplier + creditSecondsAvailable / neededTime * (1 - settings.PriceYieldMultiplier);
-                    creditSecondsAvailable = 0;
+                    priceYieldMultiplier = settings.PriceYieldMultiplier + creditUnitsAvailable / neededTime * (1 - settings.PriceYieldMultiplier);
+                    creditUnitsAvailable = 0;
                 }
-                if (Log.Debug) Log.Msg($"creditSecondsAvailable={creditSecondsAvailable} priceYieldMultiplier={priceYieldMultiplier}");
+                if (Log.Debug) Log.Msg($"creditSecondsAvailable={creditUnitsAvailable} priceYieldMultiplier={priceYieldMultiplier}");
             }
 
             return bpRuns;
@@ -285,25 +289,26 @@ namespace Catopia.Refined
         internal void ConsumeRefinaryTime()
         {
             int elapsedTime = refineryInfo.RefinaryElapsedTime();
+            int chargeableTime = (int)(elapsedTime * settings.PricePowerMultiplier);
             float powerMultiplier = 0;
 
             if (settings.PaymentType == CommonSettings.PaymentMode.PerMWh)
             {
-                if (creditSecondsAvailable <= 0)
+                if (creditUnitsAvailable <= 0)
                 { // run out of credit
                     powerMultiplier = settings.PricePowerMultiplier;
                 }
-                else if (elapsedTime <= creditSecondsAvailable)
+                else if (chargeableTime <= creditUnitsAvailable)
                 {
-                    creditSecondsAvailable -= elapsedTime;
+                    creditUnitsAvailable -= chargeableTime;
                 }
                 else
                 {
                     //lerp
-                    powerMultiplier = settings.PricePowerMultiplier - creditSecondsAvailable * settings.PricePowerMultiplier * 1.0f / elapsedTime;
-                    creditSecondsAvailable = 0;
+                    powerMultiplier = settings.PricePowerMultiplier - creditUnitsAvailable * settings.PricePowerMultiplier * 1.0f / chargeableTime;
+                    creditUnitsAvailable = 0;
                 }
-                if (Log.Debug) Log.Msg($"elapsedTime={elapsedTime} creditSecondsAvailable ={creditSecondsAvailable} powerMultiplier={powerMultiplier}");
+                if (Log.Debug) Log.Msg($"RefinaryElapsedTime={elapsedTime} chargeableTime={chargeableTime} creditSecondsAvailable={creditUnitsAvailable} powerMultiplier={powerMultiplier}");
             }
 
             refineryInfo.ConsumeUranium(elapsedTime, powerMultiplier);

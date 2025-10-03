@@ -250,7 +250,7 @@ namespace Catopia.Refined
                     }
                 case RunState.Processing:
                     {
-                        if (Log.Debug) Log.Msg("Processing...");
+                        if (Log.Debug) Log.Msg("Processing...\n---------------------------------------");
                         if (!containers.RefineNext())
                         {
                             containers.RefineEnd();

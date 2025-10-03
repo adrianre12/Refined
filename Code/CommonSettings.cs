@@ -42,8 +42,8 @@ namespace Catopia.Refined
         [XmlIgnore]
         public float PriceYieldMultiplier
         {
-            get { return 1 + (100 - priceUnitPercent) * 0.01f; }
-        } // 5% -> 1.95f;
+            get { return (100 - priceUnitPercent) * 0.01f; }
+        } // 5% -> 0.95f;
 
         [XmlIgnore]
         public float PricePowerMultiplier

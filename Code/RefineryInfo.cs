@@ -142,15 +142,6 @@ namespace Catopia.Refined
             refined.screen0.Dirty |= true;
         }
 
-        /*        internal void ConsumeRefinaryTime()
-                {
-                    var elapsedTime = MaxRefiningTime - RemainingRefiningTime;
-                    remainingOfflineTime -= elapsedTime;
-                    screen0.RunInfo.TotalRefiningTime += elapsedTime;
-
-                    reactorInfo.ConsumeUranium(elapsedTime * TotalPower); //power cost uses prepaid or MWseconds
-                }*/
-
         internal int RefinaryElapsedTime()
         {
             int elapsedTime = MaxRefiningTime - RemainingRefiningTime;

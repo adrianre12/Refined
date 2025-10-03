@@ -115,7 +115,7 @@ namespace Catopia.Refined
             var frame = GetFrame();
             //            if (settings.EnableTiming) Log.Msg($"ScreenRun Elapsed GetFrame {stopwatch.ElapsedTicks / 10.0} uS");
 
-            var position = new Vector2(5, 0);
+            var position = new Vector2(5, 5);
             var positionTab1 = new Vector2(170, 0);
 
             /*            for (int x = 0; x < viewport.Width; x += 50)
@@ -131,7 +131,7 @@ namespace Catopia.Refined
             position.Y += LineSpaceing;
 
             frame.Add(NewTextSprite("   Power:", position));
-            frame.Add(NewTextSprite($"{RunInfo.ReactorPower:0.###}MWh", position + positionTab1, Color.Green));
+            frame.Add(NewTextSprite($"{RunInfo.ReactorPower:0.###} MWh", position + positionTab1, Color.Green));
             position.Y += LineSpaceing;
 
             frame.Add(NewTextSprite("   Uranium:", position));
@@ -143,7 +143,7 @@ namespace Catopia.Refined
             position.Y += LineSpaceing;
 
             frame.Add(NewTextSprite("   Power:", position));
-            frame.Add(NewTextSprite($"{RunInfo.TotalPower:0.###}MWh", position + positionTab1, Color.Green));
+            frame.Add(NewTextSprite($"{RunInfo.TotalPower:0.###} MWh", position + positionTab1, Color.Green));
             position.Y += LineSpaceing;
 
             frame.Add(NewTextSprite("   Speed:", position));
@@ -170,9 +170,8 @@ namespace Catopia.Refined
                         frame.Add(NewTextSprite($"{settings.PricePerUnit} SC", position + positionTab1, Color.Green));
                         position.Y += LineSpaceing * 1f;
 
-                        frame.Add(NewTextSprite("   Or Ingots:", position));
+                        frame.Add(NewTextSprite("   % Ingots:", position));
                         frame.Add(NewTextSprite($"{settings.PriceUnitPercent:0.#}%", position + positionTab1, Color.Green));
-                        position.Y += LineSpaceing * 1.2f;
                         break;
                     }
                 case CommonSettings.PaymentMode.PerMWh:
@@ -181,9 +180,8 @@ namespace Catopia.Refined
                         frame.Add(NewTextSprite($"{settings.PricePerUnit} SC", position + positionTab1, Color.Green));
                         position.Y += LineSpaceing * 1f;
 
-                        frame.Add(NewTextSprite("   Or MWh:", position));
+                        frame.Add(NewTextSprite("   % MWh:", position));
                         frame.Add(NewTextSprite($"{settings.PriceUnitPercent:0.#}%", position + positionTab1, Color.Green));
-                        position.Y += LineSpaceing * 1.2f;
                         break;
 
                     }
@@ -193,9 +191,11 @@ namespace Catopia.Refined
                     }
 
             }
+            position.Y += LineSpaceing * 2f;
+
             if (RunInfo.LastOfflineS != 0)
             {
-                frame.Add(NewTextSprite("Offline:", position));
+                frame.Add(NewTextSprite("Offline Period:", position));
                 frame.Add(NewTextSprite(TimeSpan.FromSeconds(RunInfo.LastOfflineS).ToString(@"d\d\ hh\:mm"), position + positionTab1, Color.Green));
                 position.Y += LineSpaceing;
 
@@ -215,27 +215,37 @@ namespace Catopia.Refined
                     frame.Add(NewTextSprite($"{RunInfo.OresProcessed}", position + positionTab1, Color.Green));
                     position.Y += LineSpaceing;
 
-                    frame.Add(NewTextSprite("   Paid for:", position));
-                    frame.Add(NewTextSprite(TimeSpan.FromSeconds(RunInfo.CreditSecondsUsed).ToString(@"d\d\ hh\:mm"), position + positionTab1, Color.Green));
-                    position.Y += LineSpaceing;
 
-                    frame.Add(NewTextSprite("   Cost:", position));
-                    frame.Add(NewTextSprite($"{RunInfo.SCpaid} SC", position + positionTab1, Color.Green));
-                    position.Y += LineSpaceing;
 
                     switch (settings.PaymentType)
                     {
                         case CommonSettings.PaymentMode.PerHour:
                             {
-                                frame.Add(NewTextSprite("Ingots taken:", position));
+                                frame.Add(NewTextSprite("   Paid for:", position));
+                                frame.Add(NewTextSprite(TimeSpan.FromSeconds(RunInfo.CreditUnitsUsed).ToString(@"d\d\ hh\:mm"), position + positionTab1, Color.Green));
+                                position.Y += LineSpaceing;
+
+                                frame.Add(NewTextSprite("   Cost:", position));
+                                frame.Add(NewTextSprite($"{RunInfo.SCpaid} SC", position + positionTab1, Color.Green));
+                                position.Y += LineSpaceing;
+
+                                frame.Add(NewTextSprite("   Ingots taken:", position));
                                 frame.Add(NewTextSprite($"{RunInfo.AvgPercentCharge:0.#}%", position + positionTab1, Color.Green));
                                 position.Y += LineSpaceing * 1.2f;
                                 break;
                             }
                         case CommonSettings.PaymentMode.PerMWh:
                             {
-                                frame.Add(NewTextSprite("Power taken:", position));
-                                frame.Add(NewTextSprite($"{RunInfo.MWhPayment:0.###}MWh", position + positionTab1, Color.Green));
+                                frame.Add(NewTextSprite("   Paid for:", position));
+                                frame.Add(NewTextSprite($"{RunInfo.CreditUnitsUsed / 3600.0:0.###} MWh", position + positionTab1, Color.Green));
+                                position.Y += LineSpaceing;
+
+                                frame.Add(NewTextSprite("   Cost:", position));
+                                frame.Add(NewTextSprite($"{RunInfo.SCpaid} SC", position + positionTab1, Color.Green));
+                                position.Y += LineSpaceing;
+
+                                frame.Add(NewTextSprite("   Power taken:", position));
+                                frame.Add(NewTextSprite($"{RunInfo.MWhPayment:0.###} MWh", position + positionTab1, Color.Green));
                                 position.Y += LineSpaceing * 1.2f;
                                 break;
                             }
@@ -279,7 +289,7 @@ namespace Catopia.Refined
             internal int NumContainers;
             internal int LastOfflineS;
             internal int SCpaid;
-            internal int CreditSecondsUsed;
+            internal int CreditUnitsUsed;
             internal float TotalRefiningTime;
             internal float UraniumUsed;
             internal float MWhPayment;
