@@ -51,7 +51,7 @@ namespace Catopia.Refined
             if (!refineryInfo.FindRefineriesInfo(cubeGrid))
                 return false;
 
-            if (settings.EnableTiming) Log.Msg($"FindInventories Elapsed  after refinaries {stopwatch.ElapsedTicks / 10.0} uS");
+            if (settings.EnableTiming) Log.Msg($"FindInventories Elapsed  after refineries {stopwatch.ElapsedTicks / 10.0} uS");
 
             foreach (var container in cubeGrid.GetFatBlocks<IMyCargoContainer>())
             {
@@ -327,7 +327,7 @@ namespace Catopia.Refined
                     continue;
 
                 inventory.Clear();
-                MyFixedPoint amount = 1000;
+                MyFixedPoint amount = 100000;
                 foreach (var oreItemId in refiningInfoI.OrderedOreList)
                 {
                     inventory.AddItems(amount, (MyObjectBuilder_PhysicalObject)MyObjectBuilderSerializer.CreateNewObject(oreItemId));

@@ -156,8 +156,8 @@ namespace Catopia.Refined
             if (settings.EnableTiming) stopwatch.Restart();
 
             Run();
-            if (settings.EnableTiming) Log.Msg($"Elapsed time run {stopwatch.ElapsedTicks / 10.0} uS RunState={runState}");
-
+            if (settings.EnableTiming) Log.Msg($"Elapsed time after run {stopwatch.ElapsedTicks / 10.0} uS RunState={runState}");
+            stopwatch.Restart();
             screen0.Refresh();
             if (settings.EnableTiming) Log.Msg($"Elapsed time total {stopwatch.ElapsedTicks / 10.0} uS RunState={runState}");
 

@@ -40,7 +40,7 @@ namespace Catopia.Refined
         internal bool Dirty;
         private int callCounter;
 
-
+        internal ScreenRefined() { }
         internal ScreenRefined(IMyTextSurfaceProvider surfaceProvider, int index)
         {
             base.Init(surfaceProvider, index);
@@ -55,7 +55,7 @@ namespace Catopia.Refined
                 return;
             callCounter = DefaultCallCounter;
 
-            //            if (settings.EnableTiming) stopwatch.Restart();
+            if (settings.EnableTiming) stopwatch.Restart();
             switch (screenMode)
             {
                 case Mode.Text:
@@ -65,14 +65,13 @@ namespace Catopia.Refined
                     }
                 case Mode.Run:
                     {
-                        //                        if (settings.EnableTiming) Log.Msg($"Refresh Elapsed switch {stopwatch.ElapsedTicks / 10.0} uS");
+                        if (settings.EnableTiming) Log.Msg($"Refresh Elapsed before ScreenRun() call {stopwatch.ElapsedTicks / 10.0} uS");
 
                         ScreenRun();
                         break;
                     }
             }
-            //if (settings.EnableTiming) Log.Msg($"Refresh Elapsed total {stopwatch.ElapsedTicks / 10.0} uS");
-
+            if (settings.EnableTiming) Log.Msg($"Refresh Elapsed total {stopwatch.ElapsedTicks / 10.0} uS");
         }
 
         internal void AddText(string text)
@@ -109,11 +108,13 @@ namespace Catopia.Refined
 
         }
 
-        internal void ScreenRun()
+        internal void ScreenRun(bool preLoad = false)
         {
-            //           if (settings.EnableTiming) Log.Msg($"ScreenRun Elapsed in ScreenRun {stopwatch.ElapsedTicks / 10.0} uS");
+            if (preLoad)
+                return;
+            if (settings.EnableTiming) Log.Msg($"ScreenRun Elapsed entered ScreenRun {stopwatch.ElapsedTicks / 10.0} uS");
             var frame = GetFrame();
-            //            if (settings.EnableTiming) Log.Msg($"ScreenRun Elapsed GetFrame {stopwatch.ElapsedTicks / 10.0} uS");
+            if (settings.EnableTiming) Log.Msg($"ScreenRun Elapsed after GetFrame {stopwatch.ElapsedTicks / 10.0} uS");
 
             var position = new Vector2(5, 5);
             var positionTab1 = new Vector2(170, 0);
