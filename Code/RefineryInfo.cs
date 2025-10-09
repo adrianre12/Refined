@@ -27,6 +27,8 @@ namespace Catopia.Refined
         private Stopwatch stopwatch = new Stopwatch();
         private CommonSettings settings = CommonSettings.Instance;
 
+        public RefineryInfo() { }
+
         public RefineryInfo(RefinedBlock refined, int offlineS)
         {
             this.remainingOfflineTime = offlineS;
@@ -34,8 +36,10 @@ namespace Catopia.Refined
             reactorInfo = new ReactorInfo(refined);
         }
 
-        internal bool FindRefineriesInfo(IMyCubeGrid cubeGrid)
+        internal bool FindRefineriesInfo(IMyCubeGrid cubeGrid, bool preLoad = false)
         {
+            if (preLoad) return false;
+
             if (Log.Debug) Log.Msg("FindRefineriesInfo");
             if (settings.EnableTiming) stopwatch.Restart();
 
@@ -113,8 +117,10 @@ namespace Catopia.Refined
             return true;
         }
 
-        internal void DisableRefineries()
+        internal void DisableRefineries(bool preLoad = false)
         {
+            if (preLoad) return;
+
             if (refinariesDisabled)
                 return;
             refinariesDisabled = true;
@@ -142,8 +148,10 @@ namespace Catopia.Refined
             refined.screen0.Dirty |= true;
         }
 
-        internal int RefinaryElapsedTime()
+        internal int RefinaryElapsedTime(bool preLoad = false)
         {
+            if (preLoad) return 0;
+
             int elapsedTime = MaxRefiningTime - RemainingRefiningTime;
             remainingOfflineTime -= elapsedTime;
             refined.screen0.RunInfo.TotalRefiningTime += elapsedTime;
@@ -151,18 +159,26 @@ namespace Catopia.Refined
             return elapsedTime;
         }
 
-        internal void ConsumeUranium(float elapsedTime, float powerMultiplier)
+        internal void ConsumeUranium(float elapsedTime, float powerMultiplier, bool preLoad = false)
         {
+            if (preLoad) return;
             float mWseconds = elapsedTime * TotalPower;
             refined.screen0.RunInfo.MWhPayment = mWseconds * powerMultiplier * 1.0f / 3600;
             reactorInfo.ConsumeUranium(mWseconds * (1 + powerMultiplier));
         }
 
-        internal void Refresh()
+        internal void Refresh(bool preLoad = false)
         {
+            if (preLoad) return;
+
+            //if (settings.EnableTiming) stopwatch.Restart();
+
             reactorInfo.Refresh();
+            //if (settings.EnableTiming) Log.Msg($"RefineryInfo return reactor Refresh {stopwatch.ElapsedTicks / 10.0} uS");
+
             CalcMaxRefiningTime();
             if (Log.Debug) Log.Msg($"MaxRefiningUnits={MaxRefiningTime} RemainingRefiningUnits={RemainingRefiningTime}");
+            //if (settings.EnableTiming) Log.Msg($"RefineryInfo Elapsed {stopwatch.ElapsedTicks / 10.0} uS");
 
         }
     }

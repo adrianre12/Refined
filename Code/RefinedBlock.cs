@@ -154,17 +154,21 @@ namespace Catopia.Refined
             updateCounter = LongPollPeriod;
 
             if (settings.EnableTiming) stopwatch.Restart();
+            if (settings.EnableTiming) Log.Msg(">>>Timing Start");
 
             Run();
-            if (settings.EnableTiming) Log.Msg($"Elapsed time after run {stopwatch.ElapsedTicks / 10.0} uS RunState={runState}");
-            stopwatch.Restart();
+            if (settings.EnableTiming) Log.Msg($">>>Elapsed time after run {stopwatch.ElapsedTicks / 10.0} uS RunState={runState}");
+            //stopwatch.Restart();
             screen0.Refresh();
-            if (settings.EnableTiming) Log.Msg($"Elapsed time total {stopwatch.ElapsedTicks / 10.0} uS RunState={runState}");
+            if (settings.EnableTiming) Log.Msg($">>>Elapsed time total {stopwatch.ElapsedTicks / 10.0} uS RunState={runState}");
 
         }
 
-        public void Run()
+        public void Run(bool preLoad = false)
         {
+            if (preLoad)
+                return;
+
             if (CheckDuplicate())
             {
                 if (Log.Debug) Log.Msg($"Duplicate {myRefinedBlock.CustomName}");
@@ -173,7 +177,7 @@ namespace Catopia.Refined
                 return;
             }
 
-            if (Log.Debug) Log.Msg($"Runstate={runState}");
+            if (Log.Debug) Log.Msg($"Run() Runstate={runState}");
 
             switch (runState)
             {
@@ -208,6 +212,8 @@ namespace Catopia.Refined
                     }
                 case RunState.Monitoring:
                     {
+                        if (Log.Debug) Log.Msg("Monitoring...");
+
                         if (Paused())
                         {
                             runState = RunState.Detected;
@@ -218,6 +224,7 @@ namespace Catopia.Refined
                         if (containers == null)
                         { //Only happens at first start and forces a check.
                             runState = RunState.Checking;
+
                             screen0.AddText($"Startup...");
                         }
                         else
@@ -265,8 +272,10 @@ namespace Catopia.Refined
             }
         }
 
-        private bool CheckDuplicate()
+        internal bool CheckDuplicate(bool preLoad = false)
         {
+            if (preLoad) return false;
+
             var gridId = myRefinedBlock.CubeGrid.EntityId;
             long id;
             if (!blockRegister.TryGetValue(gridId, out id))
@@ -285,7 +294,7 @@ namespace Catopia.Refined
             containers = new ContainerInfo(this, 0);
             updateCounter = ShortPollPeriod;
             containers.ReFillInventories(myRefinedBlock.GetInventory(), myRefinedBlock.CubeGrid);
-            long thenS = (DateTime.Now.Ticks / TimeSpan.TicksPerSecond) - 86400;
+            long thenS = (DateTime.Now.Ticks / TimeSpan.TicksPerSecond) - 3 * 86400;
             Storage.LastTime = thenS;
             SaveToModStorage();
         }
@@ -315,27 +324,36 @@ namespace Catopia.Refined
             myRefinedBlock.EnabledChanged -= MyRefinedBlock_EnabledChanged;
         }
 
-        private bool Paused()
+        internal bool Paused(bool preLoad = false)
         {
+            if (preLoad)
+                return false;
+
             long nowS = DateTime.Now.Ticks / TimeSpan.TicksPerSecond;
             offlineS = 0;
-
             LoadFromModStorage();
+
             if (Storage.LastTime != 0)
                 offlineS = (int)Math.Min(settings.MaxOfflineHours * 3600, nowS - Storage.LastTime);
             Storage.LastTime = nowS;
-            SaveToModStorage();
 
+            SaveToModStorage();
 
             if (Log.Debug) Log.Msg($"offlineS = {offlineS}");
 
             return offlineS > settings.MinOfflineMins * 60;
         }
 
-        private void SaveToModStorage()
+        internal void SaveToModStorage(bool preLoad = false)
         {
             try
             {
+                if (preLoad)
+                {
+                    Convert.ToBase64String(MyAPIGateway.Utilities.SerializeToBinary(Storage));
+                    return;
+                }
+
                 Entity.Storage[ModStorageKey] = Convert.ToBase64String(MyAPIGateway.Utilities.SerializeToBinary(Storage));
             }
             catch (Exception e)
@@ -344,8 +362,10 @@ namespace Catopia.Refined
             }
         }
 
-        private void LoadFromModStorage()
+        internal void LoadFromModStorage(bool preLoad = false)
         {
+            if (preLoad) return;
+
             try
             {
                 Storage = new ModStorage();

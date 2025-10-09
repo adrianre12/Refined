@@ -35,14 +35,19 @@ namespace Catopia.Refined
             NotEnoughVolume,
             NotEnoughOre
         }
+
+        internal ContainerInfo() { }
+
         internal ContainerInfo(RefinedBlock refined, int offlineS)
         {
             this.refined = refined;
             refineryInfo = new RefineryInfo(refined, offlineS);
         }
 
-        internal bool FindContainerInventories(IMyInventory refinedInventory, IMyCubeGrid cubeGrid)
+        internal bool FindContainerInventories(IMyInventory refinedInventory, IMyCubeGrid cubeGrid, bool preLoad = false)
         {
+            if (preLoad) return false;
+
             if (Log.Debug) Log.Msg("FindContainerInventories");
             if (settings.EnableTiming) stopwatch.Restart();
 
@@ -51,7 +56,7 @@ namespace Catopia.Refined
             if (!refineryInfo.FindRefineriesInfo(cubeGrid))
                 return false;
 
-            if (settings.EnableTiming) Log.Msg($"FindInventories Elapsed  after refineries {stopwatch.ElapsedTicks / 10.0} uS");
+            if (settings.EnableTiming) Log.Msg($"FindInventories Elapsed after refineries {stopwatch.ElapsedTicks / 10.0} uS");
 
             foreach (var container in cubeGrid.GetFatBlocks<IMyCargoContainer>())
             {
@@ -89,25 +94,27 @@ namespace Catopia.Refined
             refineryInfo.Refresh();
         }
 
-        private void CalcCreditUnits()
+        /*        private void CalcCreditUnits()
+                {
+                    if (settings.PricePerUnit <= 0)
+                    {
+                        CreditUnitsMax = 0;
+                        creditUnitsAvailable = 0;
+                        return;
+                    }
+
+                    var scAmount = (int)refined.RefinedInventory.GetItemAmount(SCDefId);
+
+                    CreditUnitsMax = (scAmount * 3600) / settings.PricePerUnit;
+
+                    creditUnitsAvailable = CreditUnitsMax;
+                    if (Log.Debug) Log.Msg($"CalcCreditUnits CreditUnitsMax={CreditUnitsMax}");
+                }*/
+
+        internal void ConsumeCreditUnits(bool preLoad = false)
         {
-            if (settings.PricePerUnit <= 0)
-            {
-                CreditUnitsMax = 0;
-                creditUnitsAvailable = 0;
-                return;
-            }
+            if (preLoad) return;
 
-            var scAmount = (int)refined.RefinedInventory.GetItemAmount(SCDefId);
-
-            CreditUnitsMax = (scAmount * 3600) / settings.PricePerUnit;
-
-            creditUnitsAvailable = CreditUnitsMax;
-            if (Log.Debug) Log.Msg($"CalcCreditUnits CreditUnitsMax={CreditUnitsMax}");
-        }
-
-        private void ConsumeCreditUnits()
-        {
             if (settings.PricePerUnit <= 0)
                 return;
 
@@ -121,17 +128,48 @@ namespace Catopia.Refined
             if (Log.Debug) Log.Msg($"ConsumeCreditUnits ConsumeCreditUnits={creditSecondsUsed} SC removeAmount={removeAmount}");
         }
 
-        internal bool RefineNext()
+        internal bool RefineNext(bool preLoad = false)
         {
+            if (preLoad) return false;
+
             if (index >= inventories.Count || index >= settings.MaxRefineries)
                 return false;
             if (settings.EnableTiming) stopwatch.Restart();
             refineryInfo.DisableRefineries();
+            if (settings.EnableTiming) Log.Msg($"RefineNext Disable Refineries {stopwatch.ElapsedTicks / 10.0} uS");
+
             refineryInfo.Refresh();
-            CalcCreditUnits();
+            if (settings.EnableTiming) Log.Msg($"RefineNext Refinery Refresh {stopwatch.ElapsedTicks / 10.0} uS");
+
+            //CalcCreditUnits(); // Much faster inlining it.
+            {
+                if (settings.PricePerUnit <= 0)
+                {
+                    CreditUnitsMax = 0;
+                    creditUnitsAvailable = 0;
+
+                }
+                else
+                {
+
+                    var scAmount = (int)refined.RefinedInventory.GetItemAmount(SCDefId);
+
+                    CreditUnitsMax = (scAmount * 3600) / settings.PricePerUnit;
+
+                    creditUnitsAvailable = CreditUnitsMax;
+                    if (Log.Debug) Log.Msg($"CalcCreditUnits CreditUnitsMax={CreditUnitsMax}");
+                }
+            }
+            if (settings.EnableTiming) Log.Msg($"RefineNext Call RefineContainer {stopwatch.ElapsedTicks / 10.0} uS");
+
             Result result = RefineContainer(inventories[index]);
+            if (settings.EnableTiming) Log.Msg($"RefineNext RefineContainer end {stopwatch.ElapsedTicks / 10.0} uS");
             ConsumeRefinaryTime();
+            if (settings.EnableTiming) Log.Msg($"RefineNext ConsumeRefinaryTime end {stopwatch.ElapsedTicks / 10.0} uS");
+
             ConsumeCreditUnits();
+            if (settings.EnableTiming) Log.Msg($"RefineNext ConsumeCreditUnits end {stopwatch.ElapsedTicks / 10.0} uS");
+
             if (Log.Debug) Log.Msg($"RefineContainer result={result}\n---------------------------------------");
 
             switch (result)
@@ -144,11 +182,11 @@ namespace Catopia.Refined
 
                 default:
                     {
-                        //if (settings.EnableTiming) Log.Msg($"RefineNext Elapsed end {stopwatch.ElapsedTicks / 10.0} uS");
+                        if (settings.EnableTiming) Log.Msg($"RefineNext NotSuccess Elapsed end {stopwatch.ElapsedTicks / 10.0} uS");
                         return false;
                     }
             }
-            // if (settings.EnableTiming) Log.Msg($"RefineNext Elapsed end {stopwatch.ElapsedTicks / 10.0} uS");
+            if (settings.EnableTiming) Log.Msg($"RefineNext Success Elapsed end {stopwatch.ElapsedTicks / 10.0} uS");
             return index < inventories.Count;
 
         }
@@ -161,9 +199,11 @@ namespace Catopia.Refined
             refined.screen0.RunInfo.AvgPercentCharge = priceYieldMultiplierCount == 0 ? 0 : 100 - (100 * priceYieldMultiplierSum / priceYieldMultiplierCount);
         }
 
-        private Result RefineContainer(IMyInventory inventory)
+        internal Result RefineContainer(IMyInventory inventory, bool preLoad = false)
         {
-            // if (settings.EnableTiming) Log.Msg($"RefineContainer Elapsed start {stopwatch.ElapsedTicks / 10.0} uS");
+            if (preLoad) return Result.Error;
+
+            if (settings.EnableTiming) Log.Msg($"RefineContainer Elapsed start {stopwatch.ElapsedTicks / 10.0} uS");
 
             foreach (var oreItemId in refiningInfoI.OrderedOreList)
             {
@@ -176,9 +216,9 @@ namespace Catopia.Refined
                     Log.Msg($"Failed to get info for {oreItemId}");
                     return Result.Error;
                 }
-                //if (settings.EnableTiming) Log.Msg($"RefineInventoryOre Elapsed start {stopwatch.ElapsedTicks / 10.0} uS");
+                if (settings.EnableTiming) Log.Msg($"RefineInventoryOre Elapsed start {stopwatch.ElapsedTicks / 10.0} uS");
                 Result result = RefineInventoryOre(inventory, info);
-                //if (settings.EnableTiming) Log.Msg($"RefineInventoryOre Elapsed end {stopwatch.ElapsedTicks / 10.0} uS");
+                if (settings.EnableTiming) Log.Msg($"RefineInventoryOre Elapsed end {stopwatch.ElapsedTicks / 10.0} uS");
                 if (Log.Debug) Log.Msg($"RefineInventoryOre result={result}");
                 switch (result)
                 {
@@ -188,17 +228,19 @@ namespace Catopia.Refined
                         break;
                     default:
                         {
-                            // if (settings.EnableTiming) Log.Msg($"RefineContainer Elapsed end {stopwatch.ElapsedTicks / 10.0} uS");
+                            if (settings.EnableTiming) Log.Msg($"RefineContainer NotSuccess Elapsed end {stopwatch.ElapsedTicks / 10.0} uS");
                             return result;
                         }
                 }
             }
-            // if (settings.EnableTiming) Log.Msg($"RefineContainer Elapsed end {stopwatch.ElapsedTicks / 10.0} uS");
+            if (settings.EnableTiming) Log.Msg($"RefineContainer Success Elapsed end {stopwatch.ElapsedTicks / 10.0} uS");
             return Result.Success;
         }
 
-        private Result RefineInventoryOre(IMyInventory inventory, OreToIngotInfo info)
+        internal Result RefineInventoryOre(IMyInventory inventory, OreToIngotInfo info, bool preLoad = false)
         {
+            if (preLoad) return Result.Error;
+
             if (Log.Debug) Log.Msg($"Refining {info.ItemId.SubtypeName}");
 
             int oreAmount = (int)inventory.GetItemAmount(info.ItemId);
@@ -286,10 +328,14 @@ namespace Catopia.Refined
             return bpRuns;
         }
 
-        internal void ConsumeRefinaryTime()
+        internal void ConsumeRefinaryTime(bool preLoad = false)
         {
+            if (preLoad) return;
+
             int elapsedTime = refineryInfo.RefinaryElapsedTime();
+
             int chargeableTime = (int)(elapsedTime * settings.PricePowerMultiplier);
+
             float powerMultiplier = 0;
 
             if (settings.PaymentType == CommonSettings.PaymentMode.PerMWh)
@@ -297,6 +343,7 @@ namespace Catopia.Refined
                 if (creditUnitsAvailable <= 0)
                 { // run out of credit
                     powerMultiplier = settings.PricePowerMultiplier;
+
                 }
                 else if (chargeableTime <= creditUnitsAvailable)
                 {

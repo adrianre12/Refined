@@ -20,14 +20,19 @@ namespace Catopia.Refined
         private CommonSettings settings = CommonSettings.Instance;
         private List<MyInventory> inventories = new List<MyInventory>();
         private RefinedBlock refined;
+        //private Stopwatch stopwatch = new Stopwatch();
+
+        public ReactorInfo() { }
 
         public ReactorInfo(RefinedBlock refined)
         {
             this.refined = refined;
         }
 
-        internal bool FindReactorInfo(IMyCubeGrid cubeGrid)
+        internal bool FindReactorInfo(IMyCubeGrid cubeGrid, bool preLoad = false)
         {
+            if (preLoad) return false;
+
             inventories.Clear();
             MaxPower = 0;
             AvaialbleUranium = 0;
@@ -56,8 +61,11 @@ namespace Catopia.Refined
             return OK;
         }
 
-        internal void Refresh()
+        internal void Refresh(bool preLoad = false)
         {
+            if (preLoad) return;
+
+            //if (settings.EnableTiming) stopwatch.Restart();
             AvaialbleUranium = 0;
             int amountU = 0;
             foreach (var inv in inventories)
@@ -70,10 +78,13 @@ namespace Catopia.Refined
             if (Log.Debug) Log.Msg($"AvailableUranium={AvaialbleUranium}");
             refined.screen0.RunInfo.AvailableUranium = AvaialbleUranium;
             refined.screen0.Dirty = true;
+            //if (settings.EnableTiming) Log.Msg($"ReactorInfo Elapsed Refresh {stopwatch.ElapsedTicks / 10.0} uS");
+
         }
 
-        internal void ConsumeUranium(float mWseconds)
+        internal void ConsumeUranium(float mWseconds, bool preLoad = false)
         {
+            if (preLoad) return;
             float consumedUranium = (mWseconds * 1 / MWsPerU);
             refined.screen0.RunInfo.UraniumUsed += consumedUranium;
             if (Log.Debug) Log.Msg($"ConsumeUranium MWseconds={mWseconds} consumedUranium ={consumedUranium}");
@@ -81,22 +92,29 @@ namespace Catopia.Refined
             MyFixedPoint removeU = (MyFixedPoint)consumedUranium;
             foreach (var inventory in inventories)
             {
-                removeU -= RemoveUraniumFromInventory(inventory, removeU);
-                if (removeU == 0)
+                //removeU -= RemoveUraniumFromInventory(inventory, removeU);
+                MyFixedPoint foundAmount = inventory.GetItemAmount(UDefId);
+                if (foundAmount == 0)
+                    continue;
+                MyFixedPoint removedAmount = MyFixedPoint.Min(foundAmount, removeU);
+                inventory.RemoveItemsOfType(removedAmount, UDefId);
+                removeU -= removedAmount;
+
+                if (removeU <= 0)
                     break;
             }
         }
 
-        private MyFixedPoint RemoveUraniumFromInventory(MyInventory inventory, MyFixedPoint amount)
-        {
-            MyFixedPoint foundAmount = inventory.GetItemAmount(UDefId);
-            if (foundAmount == 0)
-                return 0;
+        /*        private MyFixedPoint RemoveUraniumFromInventory(MyInventory inventory, MyFixedPoint amount)
+                {
+                    MyFixedPoint foundAmount = inventory.GetItemAmount(UDefId);
+                    if (foundAmount == 0)
+                        return 0;
 
-            MyFixedPoint removedAmount = MyFixedPoint.Min(foundAmount, amount);
-            inventory.RemoveItemsOfType(removedAmount, UDefId);
+                    MyFixedPoint removedAmount = MyFixedPoint.Min(foundAmount, amount);
+                    inventory.RemoveItemsOfType(removedAmount, UDefId);
 
-            return removedAmount;
-        }
+                    return removedAmount;
+                }*/
     }
 }

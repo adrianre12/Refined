@@ -48,8 +48,10 @@ namespace Catopia.Refined
             BackgroundColor = Color.MidnightBlue;
         }
 
-        internal void Refresh()
+        internal void Refresh(bool preLoad = false)
         {
+            if (preLoad) return;
+
             if (Log.Debug) Log.Msg($"Refresh dirty={Dirty} counter={callCounter}");
             if (!Dirty && --callCounter > 0)
                 return;
@@ -60,6 +62,8 @@ namespace Catopia.Refined
             {
                 case Mode.Text:
                     {
+                        if (settings.EnableTiming) Log.Msg($"Refresh Elapsed before ScreenText() call {stopwatch.ElapsedTicks / 10.0} uS");
+
                         ScreenText();
                         break;
                     }
@@ -90,9 +94,14 @@ namespace Catopia.Refined
             Dirty = true;
         }
 
-        internal void ScreenText()
+        internal void ScreenText(bool preLoad = false)
         {
+            if (preLoad) return;
+            if (settings.EnableTiming) Log.Msg($"ScreenText Elapsed entered ScreenText {stopwatch.ElapsedTicks / 10.0} uS");
+
             var frame = GetFrame(Color.Black);
+            if (settings.EnableTiming) Log.Msg($"ScreenText Elapsed after GetFrame {stopwatch.ElapsedTicks / 10.0} uS");
+
             var position = new Vector2(5, 0);
             //           if (settings.EnableTiming) Log.Msg($"ScreenText Elapsed GetFrame {stopwatch.ElapsedTicks / 10.0} uS");
 
@@ -113,7 +122,7 @@ namespace Catopia.Refined
             if (preLoad)
                 return;
             if (settings.EnableTiming) Log.Msg($"ScreenRun Elapsed entered ScreenRun {stopwatch.ElapsedTicks / 10.0} uS");
-            var frame = GetFrame();
+            var frame = GetFrame(BackgroundColor);
             if (settings.EnableTiming) Log.Msg($"ScreenRun Elapsed after GetFrame {stopwatch.ElapsedTicks / 10.0} uS");
 
             var position = new Vector2(5, 5);

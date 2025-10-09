@@ -27,13 +27,15 @@ namespace Catopia.Refined
             surface.Script = "";
         }
 
-        public MySpriteDrawFrame GetFrame()
-        {
-            return GetFrame(BackgroundColor);
-        }
+        /*        public MySpriteDrawFrame GetFrame()
+                {
+                    return GetFrame(BackgroundColor);
+                }*/
 
-        public MySpriteDrawFrame GetFrame(Color color)
+        public MySpriteDrawFrame GetFrame(Color color, bool preLoad = false)
         {
+            if (preLoad) return new MySpriteDrawFrame();
+
             var frame = surface.DrawFrame();
             frame.Add(new MySprite() //Background
             {
@@ -62,20 +64,20 @@ namespace Catopia.Refined
             };
         }
 
-        internal MySprite NewTextSprite(string text, Vector2 position, float scale)
-        {
-            //return NewTextSprite(text, position, DefaultColor, scale, DefaultAlignment, DefaultFontId);
-            return new MySprite()
-            {
-                Type = DefaultType,
-                Data = text,
-                Position = position + viewport.Position,
-                RotationOrScale = scale,
-                Color = DefaultColor,
-                Alignment = DefaultAlignment,
-                FontId = DefaultFontId
-            };
-        }
+        /*        internal MySprite NewTextSprite(string text, Vector2 position, float scale)
+                {
+                    //return NewTextSprite(text, position, DefaultColor, scale, DefaultAlignment, DefaultFontId);
+                    return new MySprite()
+                    {
+                        Type = DefaultType,
+                        Data = text,
+                        Position = position + viewport.Position,
+                        RotationOrScale = scale,
+                        Color = DefaultColor,
+                        Alignment = DefaultAlignment,
+                        FontId = DefaultFontId
+                    };
+                }*/
         internal MySprite NewTextSprite(string text, Vector2 position, Color color)
         {
             //return NewTextSprite(text, position, color, DefaultRotationOrScale, DefaultAlignment, DefaultFontId);
@@ -91,33 +93,33 @@ namespace Catopia.Refined
             };
         }
 
-        internal MySprite NewTextSprite(string text, Vector2 position, float scale, TextAlignment alignment)
-        {
-            //return NewTextSprite(text, position, DefaultColor, scale, alignment, DefaultFontId);
-            return new MySprite()
-            {
-                Type = DefaultType,
-                Data = text,
-                Position = position + viewport.Position,
-                RotationOrScale = scale,
-                Color = DefaultColor,
-                Alignment = alignment,
-                FontId = DefaultFontId
-            };
-        }
-        internal MySprite NewTextSprite(string text, Vector2 position, Color color, float scale, TextAlignment alignment, string fontId)
-        {
-            return new MySprite()
-            {
-                Type = DefaultType,
-                Data = text,
-                Position = position + viewport.Position,
-                RotationOrScale = scale,
-                Color = color,
-                Alignment = alignment,
-                FontId = fontId
-            };
-        }
+        /*        internal MySprite NewTextSprite(string text, Vector2 position, float scale, TextAlignment alignment)
+                {
+                    //return NewTextSprite(text, position, DefaultColor, scale, alignment, DefaultFontId);
+                    return new MySprite()
+                    {
+                        Type = DefaultType,
+                        Data = text,
+                        Position = position + viewport.Position,
+                        RotationOrScale = scale,
+                        Color = DefaultColor,
+                        Alignment = alignment,
+                        FontId = DefaultFontId
+                    };
+                }*/
+        /*        internal MySprite NewTextSprite(string text, Vector2 position, Color color, float scale, TextAlignment alignment, string fontId)
+                {
+                    return new MySprite()
+                    {
+                        Type = DefaultType,
+                        Data = text,
+                        Position = position + viewport.Position,
+                        RotationOrScale = scale,
+                        Color = color,
+                        Alignment = alignment,
+                        FontId = fontId
+                    };
+                }*/
     }
 
     // How to use
