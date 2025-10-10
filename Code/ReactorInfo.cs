@@ -17,7 +17,7 @@ namespace Catopia.Refined
         internal int MWseconds { get { return (int)(AvaialbleUranium * MWsPerU); } }
         internal int AvaialbleUranium;
 
-        private CommonSettings settings = CommonSettings.Instance;
+        //private CommonSettings settings = CommonSettings.Instance;
         private List<MyInventory> inventories = new List<MyInventory>();
         private RefinedBlock refined;
         //private Stopwatch stopwatch = new Stopwatch();

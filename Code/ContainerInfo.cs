@@ -132,7 +132,7 @@ namespace Catopia.Refined
         {
             if (preLoad) return false;
 
-            if (settings.EnableTiming) stopwatch.Restart();
+            //if (settings.EnableTiming) stopwatch.Restart();
 
             if (index >= inventories.Count || index >= settings.MaxRefineries)
                 return false;
@@ -160,10 +160,10 @@ namespace Catopia.Refined
                     if (Log.Debug) Log.Msg($"CalcCreditUnits CreditUnitsMax={CreditUnitsMax}");
                 }
             }
-            if (settings.EnableTiming) Log.Msg($"RefineContainer pre {stopwatch.ElapsedTicks / 10.0} uS");
+            //if (settings.EnableTiming) Log.Msg($"RefineContainer pre {stopwatch.ElapsedTicks / 10.0} uS");
 
             Result result = RefineContainer(inventories[index]);
-            if (settings.EnableTiming) Log.Msg($"RefineContainer post {stopwatch.ElapsedTicks / 10.0} uS");
+            //if (settings.EnableTiming) Log.Msg($"RefineContainer post {stopwatch.ElapsedTicks / 10.0} uS");
 
             ConsumeRefinaryTime();
             ConsumeCreditUnits();
@@ -184,13 +184,15 @@ namespace Catopia.Refined
                         return false;
                     }
             }
-            if (settings.EnableTiming) Log.Msg($"RefineNext Success Elapsed end {stopwatch.ElapsedTicks / 10.0} uS");
+            //if (settings.EnableTiming) Log.Msg($"RefineNext Success Elapsed end {stopwatch.ElapsedTicks / 10.0} uS");
             return index < inventories.Count;
         }
 
 
-        internal void RefineEnd()
+        internal void RefineEnd(bool preLoad = false)
         {
+            if (preLoad) return;
+
             refineryInfo.EnableRefineries();
             refined.screen0.RunInfo.OresProcessed = oresProcessed;
             refined.screen0.RunInfo.AvgPercentCharge = priceYieldMultiplierCount == 0 ? 0 : 100 - (100 * priceYieldMultiplierSum / priceYieldMultiplierCount);
@@ -212,9 +214,9 @@ namespace Catopia.Refined
                     return Result.Error;
                 }
 
-                if (settings.EnableTiming) Log.Msg($"RefineInventoryOre pre {stopwatch.ElapsedTicks / 10.0} uS");
+                //if (settings.EnableTiming) Log.Msg($"RefineInventoryOre pre {stopwatch.ElapsedTicks / 10.0} uS");
                 Result result = RefineInventoryOre(inventory, info);
-                if (settings.EnableTiming) Log.Msg($"RefineInventoryOre post {stopwatch.ElapsedTicks / 10.0} uS");
+                //if (settings.EnableTiming) Log.Msg($"RefineInventoryOre post {stopwatch.ElapsedTicks / 10.0} uS");
 
                 if (Log.Debug) Log.Msg($"RefineInventoryOre result={result}");
                 switch (result)
@@ -371,7 +373,8 @@ namespace Catopia.Refined
                     continue;
 
                 inventory.Clear();
-                MyFixedPoint amount = 100000;
+                MyFixedPoint amount = (MyFixedPoint)(inventory.MaxVolume * (2702.0f / refiningInfoI.OrderedOreList.Count)).ToIntSafe(); //100000;
+                Log.Msg($"Refill amount={amount} MaxVolume={inventory.MaxVolume}  oreCount={refiningInfoI.OrderedOreList.Count}");
                 foreach (var oreItemId in refiningInfoI.OrderedOreList)
                 {
                     inventory.AddItems(amount, (MyObjectBuilder_PhysicalObject)MyObjectBuilderSerializer.CreateNewObject(oreItemId));

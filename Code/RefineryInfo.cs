@@ -98,6 +98,7 @@ namespace Catopia.Refined
                 refined.screen0.AddText("Not enough reactor power.");
                 return false;
             }
+
             CalcMaxRefiningTime();
             if (MaxRefiningTime < 1)
             {
@@ -130,8 +131,10 @@ namespace Catopia.Refined
             }
         }
 
-        internal void EnableRefineries()
+        internal void EnableRefineries(bool preLoad = false)
         {
+            if (preLoad) return;
+
             refinariesDisabled = false;
             foreach (var block in refineryList)
             {
@@ -139,13 +142,15 @@ namespace Catopia.Refined
             }
         }
 
-        private void CalcMaxRefiningTime()
+        internal void CalcMaxRefiningTime(bool preLoad = false)
         {
+            if (preLoad) return;
+
             MaxRefiningTime = (int)Math.Min(reactorInfo.MWseconds / TotalPower, remainingOfflineTime); //fudge for power cost
             RemainingRefiningTime = MaxRefiningTime;
             refined.screen0.RunInfo.MaxRefiningTime = MaxRefiningTime;
             refined.screen0.RunInfo.RemainingRefiningTime = RemainingRefiningTime;
-            refined.screen0.Dirty |= true;
+            refined.screen0.Dirty = true;
         }
 
         internal int RefinaryElapsedTime(bool preLoad = false)

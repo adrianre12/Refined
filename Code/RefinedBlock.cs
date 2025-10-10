@@ -154,13 +154,12 @@ namespace Catopia.Refined
             updateCounter = LongPollPeriod;
 
             if (settings.EnableTiming) stopwatch.Restart();
-            if (settings.EnableTiming) Log.Msg(">>>Timing Start");
+            if (settings.EnableTiming) Log.Msg($">>>Timing Start RunState={runState}");
 
             Run();
-            if (settings.EnableTiming) Log.Msg($">>>Elapsed time after run {stopwatch.ElapsedTicks / 10.0} uS RunState={runState}");
-            //stopwatch.Restart();
+            //if (settings.EnableTiming) Log.Msg($">>>Elapsed time after run {stopwatch.ElapsedTicks / 10.0} uS");
             screen0.Refresh();
-            if (settings.EnableTiming) Log.Msg($">>>Elapsed time total {stopwatch.ElapsedTicks / 10.0} uS RunState={runState}");
+            if (settings.EnableTiming) Log.Msg($">>>Elapsed time total {stopwatch.ElapsedTicks / 10.0} uS");
 
         }
 
@@ -249,6 +248,7 @@ namespace Catopia.Refined
                             runState = RunState.Checking;
                             break;
                         }
+
                         screen0.ScreenMode = ScreenRefined.Mode.Run;
                         runState = RunState.Processing;
                         updateCounter = ShortPollPeriod;
@@ -261,6 +261,7 @@ namespace Catopia.Refined
                         if (!containers.RefineNext())
                         {
                             containers.RefineEnd();
+
                             runState = RunState.Monitoring;
                             break;
                         }
@@ -291,6 +292,11 @@ namespace Catopia.Refined
 
         private void TestButtonState_ValueChanged(MySync<bool, SyncDirection.BothWays> obj)
         {
+            if (!settings.EnableTestButton)
+            {  // only work if the server is enabled.
+                Log.Msg("Test Button Disabled");
+                return;
+            }
             containers = new ContainerInfo(this, 0);
             updateCounter = ShortPollPeriod;
             containers.ReFillInventories(myRefinedBlock.GetInventory(), myRefinedBlock.CubeGrid);
