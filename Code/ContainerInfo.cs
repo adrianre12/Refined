@@ -132,14 +132,14 @@ namespace Catopia.Refined
         {
             if (preLoad) return false;
 
+            if (settings.EnableTiming) stopwatch.Restart();
+
             if (index >= inventories.Count || index >= settings.MaxRefineries)
                 return false;
-            if (settings.EnableTiming) stopwatch.Restart();
+
             refineryInfo.DisableRefineries();
-            if (settings.EnableTiming) Log.Msg($"RefineNext Disable Refineries {stopwatch.ElapsedTicks / 10.0} uS");
 
             refineryInfo.Refresh();
-            if (settings.EnableTiming) Log.Msg($"RefineNext Refinery Refresh {stopwatch.ElapsedTicks / 10.0} uS");
 
             //CalcCreditUnits(); // Much faster inlining it.
             {
@@ -160,15 +160,13 @@ namespace Catopia.Refined
                     if (Log.Debug) Log.Msg($"CalcCreditUnits CreditUnitsMax={CreditUnitsMax}");
                 }
             }
-            if (settings.EnableTiming) Log.Msg($"RefineNext Call RefineContainer {stopwatch.ElapsedTicks / 10.0} uS");
+            if (settings.EnableTiming) Log.Msg($"RefineContainer pre {stopwatch.ElapsedTicks / 10.0} uS");
 
             Result result = RefineContainer(inventories[index]);
-            if (settings.EnableTiming) Log.Msg($"RefineNext RefineContainer end {stopwatch.ElapsedTicks / 10.0} uS");
-            ConsumeRefinaryTime();
-            if (settings.EnableTiming) Log.Msg($"RefineNext ConsumeRefinaryTime end {stopwatch.ElapsedTicks / 10.0} uS");
+            if (settings.EnableTiming) Log.Msg($"RefineContainer post {stopwatch.ElapsedTicks / 10.0} uS");
 
+            ConsumeRefinaryTime();
             ConsumeCreditUnits();
-            if (settings.EnableTiming) Log.Msg($"RefineNext ConsumeCreditUnits end {stopwatch.ElapsedTicks / 10.0} uS");
 
             if (Log.Debug) Log.Msg($"RefineContainer result={result}\n---------------------------------------");
 
@@ -188,7 +186,6 @@ namespace Catopia.Refined
             }
             if (settings.EnableTiming) Log.Msg($"RefineNext Success Elapsed end {stopwatch.ElapsedTicks / 10.0} uS");
             return index < inventories.Count;
-
         }
 
 
@@ -203,8 +200,6 @@ namespace Catopia.Refined
         {
             if (preLoad) return Result.Error;
 
-            if (settings.EnableTiming) Log.Msg($"RefineContainer Elapsed start {stopwatch.ElapsedTicks / 10.0} uS");
-
             foreach (var oreItemId in refiningInfoI.OrderedOreList)
             {
                 if (refineryInfo.RemainingRefiningTime == 0)
@@ -216,9 +211,11 @@ namespace Catopia.Refined
                     Log.Msg($"Failed to get info for {oreItemId}");
                     return Result.Error;
                 }
-                if (settings.EnableTiming) Log.Msg($"RefineInventoryOre Elapsed start {stopwatch.ElapsedTicks / 10.0} uS");
+
+                if (settings.EnableTiming) Log.Msg($"RefineInventoryOre pre {stopwatch.ElapsedTicks / 10.0} uS");
                 Result result = RefineInventoryOre(inventory, info);
-                if (settings.EnableTiming) Log.Msg($"RefineInventoryOre Elapsed end {stopwatch.ElapsedTicks / 10.0} uS");
+                if (settings.EnableTiming) Log.Msg($"RefineInventoryOre post {stopwatch.ElapsedTicks / 10.0} uS");
+
                 if (Log.Debug) Log.Msg($"RefineInventoryOre result={result}");
                 switch (result)
                 {
@@ -228,12 +225,11 @@ namespace Catopia.Refined
                         break;
                     default:
                         {
-                            if (settings.EnableTiming) Log.Msg($"RefineContainer NotSuccess Elapsed end {stopwatch.ElapsedTicks / 10.0} uS");
+                            //if (settings.EnableTiming) Log.Msg($"RefineContainer NotSuccess Elapsed end {stopwatch.ElapsedTicks / 10.0} uS");
                             return result;
                         }
                 }
             }
-            if (settings.EnableTiming) Log.Msg($"RefineContainer Success Elapsed end {stopwatch.ElapsedTicks / 10.0} uS");
             return Result.Success;
         }
 
@@ -276,17 +272,21 @@ namespace Catopia.Refined
             priceYieldMultiplierSum += priceYieldMultiplier;
             ++priceYieldMultiplierCount;
 
-            foreach (var ingot in info.Ingots)
+            for (int i = 0; i < info.Ingots.Count; i++)
             {
-                MyFixedPoint ingotAmount = ingot.Amount * (refineryInfo.AvgYieldMultiplier * bpRuns * priceYieldMultiplier);
-                inventory.AddItems(ingotAmount, (MyObjectBuilder_PhysicalObject)MyObjectBuilderSerializer.CreateNewObject(ingot.ItemId));
+                var ingot = info.Ingots[i];
+                inventory.AddItems(ingot.Amount * (refineryInfo.AvgYieldMultiplier * bpRuns * priceYieldMultiplier),
+                    (MyObjectBuilder_PhysicalObject)MyObjectBuilderSerializer.CreateNewObject(ingot.ItemId));
             }
 
             return Result.Success;
         }
 
-        private int RefinaryTimeCheck(float productionTime, int bpRuns, out float priceYieldMultiplier)
+        internal int RefinaryTimeCheck(float productionTime, int bpRuns, out float priceYieldMultiplier, bool preLoad = false)
         {
+            priceYieldMultiplier = 1;
+            if (preLoad) return 0;
+
             int neededTime = (int)(productionTime * bpRuns / refineryInfo.TotalSpeed);
 
             if (neededTime <= refineryInfo.RemainingRefiningTime)
@@ -300,9 +300,6 @@ namespace Catopia.Refined
                 refineryInfo.RemainingRefiningTime = 0;
                 neededTime = (int)(productionTime * bpRuns / refineryInfo.TotalSpeed);
             }
-
-
-            priceYieldMultiplier = 1;
 
             if (settings.PaymentType == CommonSettings.PaymentMode.PerHour)
             {

@@ -294,7 +294,7 @@ namespace Catopia.Refined
             containers = new ContainerInfo(this, 0);
             updateCounter = ShortPollPeriod;
             containers.ReFillInventories(myRefinedBlock.GetInventory(), myRefinedBlock.CubeGrid);
-            long thenS = (DateTime.Now.Ticks / TimeSpan.TicksPerSecond) - 3 * 86400;
+            long thenS = (DateTime.Now.Ticks / TimeSpan.TicksPerSecond) - 5 * 86400;
             Storage.LastTime = thenS;
             SaveToModStorage();
         }

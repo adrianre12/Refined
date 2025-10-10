@@ -57,25 +57,25 @@ namespace Catopia.Refined
                 return;
             callCounter = DefaultCallCounter;
 
-            if (settings.EnableTiming) stopwatch.Restart();
+            //if (settings.EnableTiming) stopwatch.Restart();
             switch (screenMode)
             {
                 case Mode.Text:
                     {
-                        if (settings.EnableTiming) Log.Msg($"Refresh Elapsed before ScreenText() call {stopwatch.ElapsedTicks / 10.0} uS");
+                        //if (settings.EnableTiming) Log.Msg($"Refresh Elapsed before ScreenText() call {stopwatch.ElapsedTicks / 10.0} uS");
 
                         ScreenText();
                         break;
                     }
                 case Mode.Run:
                     {
-                        if (settings.EnableTiming) Log.Msg($"Refresh Elapsed before ScreenRun() call {stopwatch.ElapsedTicks / 10.0} uS");
+                        //if (settings.EnableTiming) Log.Msg($"Refresh Elapsed before ScreenRun() call {stopwatch.ElapsedTicks / 10.0} uS");
 
                         ScreenRun();
                         break;
                     }
             }
-            if (settings.EnableTiming) Log.Msg($"Refresh Elapsed total {stopwatch.ElapsedTicks / 10.0} uS");
+            //if (settings.EnableTiming) Log.Msg($"Refresh Elapsed total {stopwatch.ElapsedTicks / 10.0} uS");
         }
 
         internal void AddText(string text)
@@ -97,13 +97,10 @@ namespace Catopia.Refined
         internal void ScreenText(bool preLoad = false)
         {
             if (preLoad) return;
-            if (settings.EnableTiming) Log.Msg($"ScreenText Elapsed entered ScreenText {stopwatch.ElapsedTicks / 10.0} uS");
 
             var frame = GetFrame(Color.Black);
-            if (settings.EnableTiming) Log.Msg($"ScreenText Elapsed after GetFrame {stopwatch.ElapsedTicks / 10.0} uS");
 
             var position = new Vector2(5, 0);
-            //           if (settings.EnableTiming) Log.Msg($"ScreenText Elapsed GetFrame {stopwatch.ElapsedTicks / 10.0} uS");
 
             foreach (var line in screenText)
             {
@@ -113,7 +110,6 @@ namespace Catopia.Refined
 
             frame.Dispose();
             Dirty = false;
-            //           if (settings.EnableTiming) Log.Msg($"ScreenText Elapsed Total {stopwatch.ElapsedTicks / 10.0} uS");
 
         }
 
@@ -121,9 +117,9 @@ namespace Catopia.Refined
         {
             if (preLoad)
                 return;
-            if (settings.EnableTiming) Log.Msg($"ScreenRun Elapsed entered ScreenRun {stopwatch.ElapsedTicks / 10.0} uS");
+            //if (settings.EnableTiming) Log.Msg($"ScreenRun Elapsed entered ScreenRun {stopwatch.ElapsedTicks / 10.0} uS");
             var frame = GetFrame(BackgroundColor);
-            if (settings.EnableTiming) Log.Msg($"ScreenRun Elapsed after GetFrame {stopwatch.ElapsedTicks / 10.0} uS");
+            //if (settings.EnableTiming) Log.Msg($"ScreenRun Elapsed after GetFrame {stopwatch.ElapsedTicks / 10.0} uS");
 
             var position = new Vector2(5, 5);
             var positionTab1 = new Vector2(170, 0);

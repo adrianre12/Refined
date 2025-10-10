@@ -12,6 +12,7 @@ namespace Catopia.Refined
 
         public override void LoadData()
         {
+
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
             long a = stopwatch.ElapsedTicks;
@@ -46,6 +47,9 @@ namespace Catopia.Refined
             containerInfo.FindContainerInventories(null, null, true);
             containerInfo.ConsumeRefinaryTime(true);
             containerInfo.ConsumeCreditUnits(true);
+            float tmpF;
+            containerInfo.RefinaryTimeCheck(0, 0, out tmpF, true);
+
             a = stopwatch.ElapsedTicks;
 
             var refineryInfo = new RefineryInfo();
