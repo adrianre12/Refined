@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netframework48</TargetFramework>
     <RootNamespace>Catopia.Refined</RootNamespace>
@@ -12,7 +12,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Mal.Mdk2.ModPackager" Version="2.1.6">
+    <PackageReference Include="Mal.Mdk2.ModPackager" Version="2.1.7">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -22,11 +22,10 @@
     <AdditionalFiles Include="Content\*\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </AdditionalFiles>
-    <AdditionalFiles Include="thumb.png" Condition="Exists('thumb.png')">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </AdditionalFiles>
+	<AdditionalFiles Include="thumb.jpg" Condition="Exists('thumb.jpg')">
+		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</AdditionalFiles>
     <AdditionalFiles Remove="Content\*\**\*.cs" />
-    <None Remove="thumb.png" />
   </ItemGroup>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="TorchDeploy.cmd" />

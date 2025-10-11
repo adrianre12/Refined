@@ -36,8 +36,6 @@ namespace Catopia.Refined
             NotEnoughOre
         }
 
-        internal ContainerInfo() { }
-
         internal ContainerInfo(RefinedBlock refined, int offlineS)
         {
             this.refined = refined;
@@ -50,8 +48,6 @@ namespace Catopia.Refined
 
             if (Log.Debug) Log.Msg("FindContainerInventories");
             if (settings.EnableTiming) stopwatch.Restart();
-
-
 
             if (!refineryInfo.FindRefineriesInfo(cubeGrid))
                 return false;
@@ -66,9 +62,10 @@ namespace Catopia.Refined
                 if (!refinedInventory.IsConnectedTo(inventory))
                     continue;
 
-                inventories.Add(container.GetInventory());
+                inventories.Add(inventory);
                 if (Log.Debug) Log.Msg($"Added `{container.CustomName}`");
-
+                if (inventories.Count >= settings.MaxContainers)
+                    break;
             }
 
             if (inventories.Count == 0)
@@ -79,6 +76,7 @@ namespace Catopia.Refined
 
                 return false;
             }
+
             refined.screen0.RunInfo.NumContainers = inventories.Count;
             refined.screen0.Dirty = true;
 
@@ -134,7 +132,7 @@ namespace Catopia.Refined
 
             //if (settings.EnableTiming) stopwatch.Restart();
 
-            if (index >= inventories.Count || index >= settings.MaxRefineries)
+            if (index >= inventories.Count)
                 return false;
 
             refineryInfo.DisableRefineries();
@@ -180,7 +178,7 @@ namespace Catopia.Refined
 
                 default:
                     {
-                        if (settings.EnableTiming) Log.Msg($"RefineNext NotSuccess Elapsed end {stopwatch.ElapsedTicks / 10.0} uS");
+                        //if (settings.EnableTiming) Log.Msg($"RefineNext NotSuccess Elapsed end {stopwatch.ElapsedTicks / 10.0} uS");
                         return false;
                     }
             }

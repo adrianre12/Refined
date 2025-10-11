@@ -14,10 +14,11 @@ namespace Catopia.Refined
             "PaymentType [None|PerHour|PerMWh]",
             "For PerMWh consider setting PricePerUnit to at least the price of one Uranium Ingot, as one ingot equals 1 MWh.",
             "The vanilla price of Uranium ingots is 76823, but only PriceUnitPercent of this is charged.",
-            "Example: A Refinery uses 560KW, with PricePerUnit=5%. The cost per hour = 0.56 * 0.05 * 76823 = 2151 SC/h",
-            "EnableTestButton adds a button to the terminal that adds ores to the inventories and sets the offline period to 1 day",
+            "MaxContainers should not be set too high as it impacts performance, 5 is ideal.",
+            "EnableTestButton adds a button to the terminal that adds ores to the inventories and sets the offline period to 5 days",
+            "Must be set on Client and Server to work.",
             "Don't use this in production, it gives free ingots!",
-            "EnableTiming logs elapsed time for the Run and Screen refresh."};
+            "EnableTiming logs elapsed time."};
 
         private static CommonSettings instance;
 
@@ -32,6 +33,7 @@ namespace Catopia.Refined
         }
         public PaymentMode PaymentType = PaymentMode.PerMWh;
         public int MaxRefineries = 10;
+        public int MaxContainers = 5;
 
         public bool EnableTestButton = false;
         public bool EnableTiming = false;

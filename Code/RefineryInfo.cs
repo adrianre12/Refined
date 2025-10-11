@@ -81,6 +81,8 @@ namespace Catopia.Refined
                 TotalPower += baseOperationalPowerConsumption / powerEfficiency * (1 + productivity);
 
                 refineryList.Add(block);
+                if (refineryList.Count >= settings.MaxRefineries)
+                    break;
             }
             AvgYieldMultiplier = sumYieldMultiplier / refinaryCount;
             if (Log.Debug) Log.Msg($"avgYieldMultiplier={AvgYieldMultiplier} refineriesTotalSpeed={TotalSpeed} refineriesTotalPower={TotalPower}");
