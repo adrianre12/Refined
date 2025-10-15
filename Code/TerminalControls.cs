@@ -1,4 +1,5 @@
-﻿using Sandbox.ModAPI;
+﻿using Sandbox.Game.Localization;
+using Sandbox.ModAPI;
 using Sandbox.ModAPI.Interfaces.Terminal;
 using System;
 using System.Collections.Generic;
@@ -72,9 +73,6 @@ namespace Catopia.Refined
                 c.Getter = (b) => b?.GameLogic?.GetAs<RefinedBlock>()?.SliderReserveUranium.Value ?? 0;
 
                 c.SetLimits(0, 100);
-                //c.SetLimits((b) => 0, (b) => 10); // overload with callbacks to define limits based on the block instance.
-                //c.SetDualLogLimits(0, 10, 2); // all these also have callback overloads
-                //c.SetLogLimits(0, 10);
 
                 // called when the value changes so that you can display it next to the label
                 c.Writer = (b, sb) =>
@@ -85,6 +83,27 @@ namespace Catopia.Refined
                         float val = logic.SliderReserveUranium.Value;
                         sb.Append(Math.Round(val, 2)).Append(" ingots");
                     }
+                };
+
+                MyAPIGateway.TerminalControls.AddControl<IMyTextPanel>(c);
+            }
+
+            {
+                var c = MyAPIGateway.TerminalControls.CreateControl<IMyTerminalControlOnOffSwitch, IMyTextPanel>(IdPrefix + "PowerOnReactors");
+                c.Title = MyStringId.GetOrCompute("Reactor Power Override");
+                c.Tooltip = MyStringId.GetOrCompute("Use reactors that are powered off.");
+                c.SupportsMultipleBlocks = true;
+                c.Visible = CustomVisibleCondition;
+
+                c.OnText = MySpaceTexts.SwitchText_On;
+                c.OffText = MySpaceTexts.SwitchText_Off; ;
+
+                c.Getter = (b) => b?.GameLogic?.GetAs<RefinedBlock>()?.PowerOnReactors ?? false;
+                c.Setter = (b, v) =>
+                {
+                    var logic = b?.GameLogic?.GetAs<RefinedBlock>();
+                    if (logic != null)
+                        logic.PowerOnReactors.Value = v;
                 };
 
                 MyAPIGateway.TerminalControls.AddControl<IMyTextPanel>(c);

@@ -40,7 +40,7 @@ namespace Catopia.Refined
             if (Log.Debug) Log.Msg("FindReactorInfo");
             foreach (var block in cubeGrid.GetFatBlocks<IMyReactor>())
             {
-                if (!block.Enabled || !block.IsFunctional)
+                if ((!block.Enabled && !refined.Storage.PowerOnReactors) || !block.IsFunctional)
                     continue;
                 MyInventory inv = (MyInventory)block.GetInventory();
                 inventories.Add(inv);

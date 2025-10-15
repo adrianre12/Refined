@@ -43,6 +43,7 @@ namespace Catopia.Refined
 
         internal MySync<bool, SyncDirection.BothWays> TestButtonState;
         internal MySync<int, SyncDirection.BothWays> SliderReserveUranium;
+        internal MySync<bool, SyncDirection.BothWays> PowerOnReactors;
 
         internal ScreenRefined screen0;
 
@@ -65,11 +66,14 @@ namespace Catopia.Refined
             public long LastTime;
             [ProtoMember(2)]
             public int ReserveUranium;
+            [ProtoMember(3)]
+            public bool PowerOnReactors;
 
             public ModStorage()
             {
                 LastTime = 0;
                 ReserveUranium = 50;
+                PowerOnReactors = false;
             }
         }
 
@@ -124,6 +128,7 @@ namespace Catopia.Refined
 
             TestButtonState.ValueChanged += TestButtonState_ValueChanged;
             SliderReserveUranium.ValueChanged += SliderReserveUraniumServer_ValueChanged;
+            PowerOnReactors.ValueChanged += PowerOnReactors_ValueChanged;
             myRefinedBlock.EnabledChanged += MyRefinedBlock_EnabledChanged;
 
             NeedsUpdate = MyEntityUpdateEnum.EACH_100TH_FRAME;
@@ -315,6 +320,12 @@ namespace Catopia.Refined
         }
 
 
+        private void PowerOnReactors_ValueChanged(MySync<bool, SyncDirection.BothWays> obj)
+        {
+            if (Log.Debug) Log.Msg($"Server PowerOnReactors={PowerOnReactors.Value}");
+            Storage.PowerOnReactors = PowerOnReactors.Value;
+            SaveToModStorage();
+        }
         public override void Close()
         {
             if (!MyAPIGateway.Session.IsServer)
@@ -327,6 +338,7 @@ namespace Catopia.Refined
                 blockRegister.Remove(gridId);
             TestButtonState.ValueChanged -= TestButtonState_ValueChanged;
             SliderReserveUranium.ValueChanged -= SliderReserveUraniumServer_ValueChanged;
+            PowerOnReactors.ValueChanged -= PowerOnReactors_ValueChanged;
             myRefinedBlock.EnabledChanged -= MyRefinedBlock_EnabledChanged;
         }
 
@@ -391,6 +403,7 @@ namespace Catopia.Refined
                 Storage = new ModStorage();
             }
             SliderReserveUranium.SetLocalValue(Storage.ReserveUranium);
+            PowerOnReactors.SetLocalValue(Storage.PowerOnReactors);
         }
 
         // On Client
