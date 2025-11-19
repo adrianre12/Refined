@@ -58,7 +58,7 @@ namespace Catopia.Refined
             float baseMaterialEfficiency = baseRefinaryDefinition.MaterialEfficiency;
             float baseOperationalPowerConsumption = baseRefinaryDefinition.OperationalPowerConsumption;
             float refinerySpeedMultiplier = MyAPIGateway.Session.RefinerySpeedMultiplier;
-            //Log($"baseRefineSpeed={baseRefineSpeed} baseMaterialEfficiency={baseMaterialEfficiency} baseOperationalPowerConsumption={baseOperationalPowerConsumption} refinerySpeedMultiplier={refinerySpeedMultiplier}");
+            if (Log.Debug) Log.Msg($"baseRefineSpeed={baseRefineSpeed} baseMaterialEfficiency={baseMaterialEfficiency} baseOperationalPowerConsumption={baseOperationalPowerConsumption} refinerySpeedMultiplier={refinerySpeedMultiplier}");
 
             AvgYieldMultiplier = 0;
             TotalSpeed = 0;
@@ -77,7 +77,7 @@ namespace Catopia.Refined
 
                 refinaryCount++;
                 sumYieldMultiplier += effectiveness;
-                TotalSpeed += (float)Math.Round((baseRefineSpeed + productivity) * refinerySpeedMultiplier);
+                TotalSpeed += (float)(Math.Round(100 * (baseRefineSpeed + productivity) * refinerySpeedMultiplier) * 0.01);
                 TotalPower += baseOperationalPowerConsumption / powerEfficiency * (1 + productivity);
 
                 refineryList.Add(block);

@@ -220,7 +220,7 @@ namespace Catopia.Refined
 
                         if (Paused())
                         {
-                            Log.Msg($"Grid: '{myRefinedBlock.CubeGrid.DisplayName}' Detected Offline {offlineS}S");
+                            Log.Msg($"Grid: '{myRefinedBlock.CubeGrid.DisplayName}' Detected Offline {offlineS}");
                             runState = RunState.Detected;
                             updateCounter = ShortPollPeriod;
                             break;
@@ -267,7 +267,21 @@ namespace Catopia.Refined
                         if (!containers.RefineNext())
                         {
                             containers.RefineEnd();
-                            Log.Msg($"Grid: '{myRefinedBlock.CubeGrid.DisplayName}' End of processing, ores={screen0.RunInfo.OresProcessed}S");
+                            Log.Msg($"Grid: '{myRefinedBlock.CubeGrid.DisplayName}' End of processing, ores={screen0.RunInfo.OresProcessed}");
+                            //Doesnt work in MP.
+                            /*                            string[] tmp = myRefinedBlock.CustomData.Split(new char[] { '\n' });
+                                                        StringBuilder sb = new StringBuilder();
+                                                        sb.Append(myRefinedBlock.CustomData = $"{DateTime.Now:HH:mm MMM} Processed ores = {screen0.RunInfo.OresProcessed}\n");
+                                                        int i = 0;
+                                                        foreach (var line in tmp)
+                                                        {
+                                                            sb.Append($"{line}\n");
+                                                            i++;
+                                                            if (i > 18)
+                                                                break;
+                                                        }
+                                                        myRefinedBlock.CustomData = sb.ToString();
+                            */                            //myRefinedBlock.CustomData = $"{DateTime.Now:HH:mm MMM} Processed ores = {screen0.RunInfo.OresProcessed}\n{myRefinedBlock.CustomData.Truncate(700)} ";
                             runState = RunState.Monitoring;
                             break;
                         }
@@ -306,7 +320,7 @@ namespace Catopia.Refined
             containers = new ContainerInfo(this, 0);
             updateCounter = ShortPollPeriod;
             containers.ReFillInventories(myRefinedBlock.GetInventory(), myRefinedBlock.CubeGrid);
-            long thenS = (DateTime.Now.Ticks / TimeSpan.TicksPerSecond) - 5 * 86400;
+            long thenS = (DateTime.Now.Ticks / TimeSpan.TicksPerSecond) - 12120;// - 5 * 86400;
             Storage.LastTime = thenS;
             SaveToModStorage();
         }
