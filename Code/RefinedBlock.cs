@@ -220,6 +220,7 @@ namespace Catopia.Refined
 
                         if (Paused())
                         {
+                            Log.Msg($"Grid: '{myRefinedBlock.CubeGrid.DisplayName}' Detected Offline {offlineS}S");
                             runState = RunState.Detected;
                             updateCounter = ShortPollPeriod;
                             break;
@@ -266,7 +267,7 @@ namespace Catopia.Refined
                         if (!containers.RefineNext())
                         {
                             containers.RefineEnd();
-
+                            Log.Msg($"Grid: '{myRefinedBlock.CubeGrid.DisplayName}' End of processing, ores={screen0.RunInfo.OresProcessed}S");
                             runState = RunState.Monitoring;
                             break;
                         }
