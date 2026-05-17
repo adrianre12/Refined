@@ -73,7 +73,7 @@ namespace Catopia.Refined
             float sumYieldMultiplier = 0;
             foreach (var block in cubeGrid.GetFatBlocks<IMyRefinery>())
             {
-                if (!block.CustomName.Contains(RefinedBlock.KeyWord) || !block.Enabled || !block.IsFunctional)
+                if (!block.CustomName.Contains(RefinedBlock.KeyWord) || !block.Enabled || !block.IsFunctional || block.BlockDefinition.SubtypeId == "Blast Furnace")
                     continue;
 
                 baseRefinaryDefinition = (MyRefineryDefinition)MyDefinitionManager.Static.GetCubeBlockDefinition(block.BlockDefinition);

@@ -182,12 +182,16 @@ namespace Catopia.Refined
                     }
                 case CommonSettings.PaymentMode.PerMWh:
                     {
-                        frame.Add(NewTextSprite("Price SC/MWh:", position));
-                        frame.Add(NewTextSprite($"{settings.PricePerUnit} SC", position + positionTab1, Color.Green));
+                        frame.Add(NewTextSprite("Price % MWh:", position));
+                        frame.Add(NewTextSprite($"{settings.PriceUnitPercent:0.#}%", position + positionTab1, Color.Green));
                         position.Y += LineSpaceing * 1f;
 
-                        frame.Add(NewTextSprite("   % MWh:", position));
-                        frame.Add(NewTextSprite($"{settings.PriceUnitPercent:0.#}%", position + positionTab1, Color.Green));
+                        frame.Add(NewTextSprite("   SC/MWh:", position));
+                        if (settings.PricePerUnit <= 0)
+                            frame.Add(NewTextSprite("Disabled", position + positionTab1, Color.Green));
+                        else
+                            frame.Add(NewTextSprite($"{settings.PricePerUnit} SC", position + positionTab1, Color.Green));
+
                         break;
 
                     }
@@ -243,11 +247,17 @@ namespace Catopia.Refined
                         case CommonSettings.PaymentMode.PerMWh:
                             {
                                 frame.Add(NewTextSprite("   Paid for:", position));
-                                frame.Add(NewTextSprite($"{RunInfo.CreditUnitsUsed / 3600.0:0.###} MWh", position + positionTab1, Color.Green));
+                                if (settings.PricePerUnit <= 0)
+                                    frame.Add(NewTextSprite("-", position + positionTab1, Color.Green));
+                                else
+                                    frame.Add(NewTextSprite($"{RunInfo.CreditUnitsUsed / 3600.0:0.###} MWh", position + positionTab1, Color.Green));
                                 position.Y += LineSpaceing;
 
                                 frame.Add(NewTextSprite("   Cost:", position));
-                                frame.Add(NewTextSprite($"{RunInfo.SCpaid} SC", position + positionTab1, Color.Green));
+                                if (settings.PricePerUnit <= 0)
+                                    frame.Add(NewTextSprite("-", position + positionTab1, Color.Green));
+                                else
+                                    frame.Add(NewTextSprite($"{RunInfo.SCpaid} SC", position + positionTab1, Color.Green));
                                 position.Y += LineSpaceing;
 
                                 frame.Add(NewTextSprite("   Power taken:", position));

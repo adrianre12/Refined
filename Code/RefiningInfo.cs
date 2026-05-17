@@ -116,6 +116,11 @@ namespace Catopia.Refined
                         continue;
                     }
 
+                    if (OreToIngots.ContainsKey(bpd.Prerequisites[0].Id))
+                    {
+                        if (Log.Debug) Log.Msg($"OreToIngots already containes {bpd.Prerequisites[0].Id}");
+                        continue;
+                    }
                     OreToIngots.Add(bpd.Prerequisites[0].Id, new OreToIngotInfo(bpd));
                 }
 
