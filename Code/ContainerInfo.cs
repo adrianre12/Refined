@@ -16,7 +16,6 @@ namespace Catopia.Refined
         private List<IMyInventory> inventories = new List<IMyInventory>();
         private MyDefinitionId SCDefId = new MyDefinitionId(typeof(MyObjectBuilder_PhysicalObject), "SpaceCredit");
 
-        private RefiningInfo refiningInfoI = RefiningInfo.Instance;
         private RefineryInfo refineryInfo;
         private int index;
         private RefinedBlock refined;
@@ -199,7 +198,7 @@ namespace Catopia.Refined
         internal Result RefineContainer(IMyInventory inventory, bool preLoad = false)
         {
             if (preLoad) return Result.Error;
-
+            RefiningInfo refiningInfoI = RefiningInfo.Instance;
             foreach (var oreItemId in refiningInfoI.OrderedOreList)
             {
                 if (refineryInfo.RemainingRefiningTime == 0)
@@ -363,6 +362,7 @@ namespace Catopia.Refined
         internal void ReFillInventories(IMyInventory refinedInventory, IMyCubeGrid cubeGrid)
         {
             Log.Msg("ReFillInventories");
+            RefiningInfo refiningInfoI = RefiningInfo.Instance;
 
             foreach (var container in cubeGrid.GetFatBlocks<IMyCargoContainer>())
             {
@@ -373,17 +373,17 @@ namespace Catopia.Refined
                     continue;
 
                 inventory.Clear();
-                /*                MyFixedPoint amount = (MyFixedPoint)(inventory.MaxVolume * (2702.0f / refiningInfoI.OrderedOreList.Count)).ToIntSafe(); //100000;
-                                Log.Msg($"Refill amount={amount} MaxVolume={inventory.MaxVolume}  oreCount={refiningInfoI.OrderedOreList.Count}");
-                                foreach (var oreItemId in refiningInfoI.OrderedOreList)
-                                {
-                                    inventory.AddItems(amount, (MyObjectBuilder_PhysicalObject)MyObjectBuilderSerializer.CreateNewObject(oreItemId));
-                                }
-                */
-                MyDefinitionId PtDefId = new MyDefinitionId(typeof(MyObjectBuilder_Ore), "Platinum");
+                MyFixedPoint amount = (MyFixedPoint)(inventory.MaxVolume * (2702.0f / refiningInfoI.OrderedOreList.Count)).ToIntSafe(); //100000;
+                Log.Msg($"Refill amount={amount} MaxVolume={inventory.MaxVolume}  oreCount={refiningInfoI.OrderedOreList.Count}");
+                foreach (var oreItemId in refiningInfoI.OrderedOreList)
+                {
+                    inventory.AddItems(amount, (MyObjectBuilder_PhysicalObject)MyObjectBuilderSerializer.CreateNewObject(oreItemId));
+                }
+
+                /*MyDefinitionId PtDefId = new MyDefinitionId(typeof(MyObjectBuilder_Ore), "Platinum");
                 MyFixedPoint amount = 1000000; // (MyFixedPoint)(inventory.MaxVolume * 2702.0f).ToIntSafe(); //100000;
                 Log.Msg($"Refill amount={amount} MaxVolume={inventory.MaxVolume} ");
-                inventory.AddItems(amount, (MyObjectBuilder_PhysicalObject)MyObjectBuilderSerializer.CreateNewObject(PtDefId));
+                inventory.AddItems(amount, (MyObjectBuilder_PhysicalObject)MyObjectBuilderSerializer.CreateNewObject(PtDefId));*/
 
                 Log.Msg($"Refilled `{container.CustomName}`");
 

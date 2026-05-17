@@ -118,7 +118,7 @@ namespace Catopia.Refined
             if (!MyAPIGateway.Session.IsServer) // server only
                 return;
 
-            var refiningInfoI = RefiningInfo.Instance; // create instance now.
+            //var refiningInfoI = RefiningInfo.Instance; // create instance now.
 
             runState = RunState.Monitoring;
             updateCounter = 0;
